@@ -122,3 +122,19 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Test inputs
+*.csv
+*.xlsx
+*.xls
+
+# Test data files 
+data/*
+*.csv
+*.xlsx
+*.xls
+*.parquet
+
+
+# VS Code settings
+.vscode/*

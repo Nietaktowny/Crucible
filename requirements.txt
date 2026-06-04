@@ -1,0 +1,9 @@
+polars
+pandas
+duckdb
+sqlalchemy
+pydantic
+pytest
+pytest-cov
+pyyaml
+rich

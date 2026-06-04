@@ -1,0 +1,38 @@
+name: test
+
+input:
+  path: network_currents_2026-05-29.csv
+
+steps:
+  - key: select_columns
+    columns:
+      - Name
+      - locker
+      - current
+  - key: filter_rows
+    column: current
+    operator: "!="
+    value: "X"
+  - key: filter_rows
+    column: Name
+    operator: "="
+    value: "BE041035"
+  - key: change_column_type
+    column_types:
+      current: int32
+  - key: filter_rows
+    column: current
+    operator: ">="
+    value: 4000
+  - key: rename_columns
+    mapping:
+      Name: APM
+      locker: Locker
+      current: Current mA
+  - key: sort_rows
+    columns:
+      - name: Current mA
+        direction: desc
+
+output:
+  path: data/currents/currents_2026-05-29.csv
