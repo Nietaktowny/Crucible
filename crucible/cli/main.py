@@ -7,6 +7,7 @@ from rich.logging import RichHandler
 
 from crucible.workflow import WorkflowExecutor
 from crucible.workflow.loader import WorkflowLoader
+from crucible.workflow.preprocessor import WorkflowPreprocessor
 from crucible.models import Workflow, IOConfig
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,10 @@ class CrucibleCli:
         
         workflow_loader = WorkflowLoader()
         workflow = workflow_loader.load(args.workflow)
+        
+        preprocessor = WorkflowPreprocessor()
+        workflow = preprocessor.preprocess(workflow)
+        
         logger.debug(f"Loaded workflow: {workflow}")
         executor = WorkflowExecutor()
         plan = executor.build(workflow)
