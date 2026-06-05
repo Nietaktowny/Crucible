@@ -24,9 +24,6 @@ class StepsRegistry:
         if not step_cls:
             raise ValueError(f"Step with key '{key}' not found in registry.")
         
-        if step_cls in [steps.ReadDataStep, steps.WriteDataStep]:
-            return step_cls(config=step_config, io_manager=io_manager)
-        
         return step_cls(config=step_config)
     
     def get_model_class(self, key: str) -> type | None:

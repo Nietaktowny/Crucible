@@ -57,9 +57,7 @@ class StepProtocol(Protocol):
 class Workflow(BaseModel):
     name: str
 
-    input: IOConfig
     steps: list[StepConfig] = Field(default_factory=list)
-    output: IOConfig
     
 
 class StepStatus(StrEnum):
