@@ -28,3 +28,20 @@ class WorkflowLoader:
             f"Unsupported workflow file format: {suffix}. "
             "Supported formats: .yaml, .yml, .json"
         )
+        
+    def save(self, workflow: Workflow, path: str | Path):
+        path = Path(path)
+        suffix = path.suffix.lower()
+
+        if suffix in {".yaml", ".yml"}:
+            path.write_text(yaml.safe_dump(workflow.model_dump()), encoding="utf-8")
+            return
+
+        if suffix == ".json":
+            path.write_text(json.dumps(workflow.model_dump(), indent=2), encoding="utf-8")
+            return
+
+        raise ValueError(
+            f"Unsupported workflow file format: {suffix}. "
+            "Supported formats: .yaml, .yml, .json"
+        )
