@@ -28,3 +28,9 @@ class StepsRegistry:
             return step_cls(config=step_config, io_manager=io_manager)
         
         return step_cls(config=step_config)
+    
+    def get_model_class(self, key: str) -> type | None:
+        step_cls = self._steps_cls.get(key)
+        if not step_cls:
+            raise ValueError(f"Step with key '{key}' not found in registry.")
+        return getattr(step_cls, "config_model", None)

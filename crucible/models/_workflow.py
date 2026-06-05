@@ -3,7 +3,7 @@ from pathlib import Path
 from enum import StrEnum
 from abc import ABC, abstractmethod
 from uuid import uuid4
-from typing import Protocol
+from typing import Protocol, Mapping
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 import polars as pl
@@ -23,20 +23,33 @@ class StepConfig(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     key: str
+    name: str | None = None
+    description: str | None = None
+    parameters: dict[str, Any] = Field(default_factory=dict)
 
 
 class Step(ABC):
     key: ClassVar[str]
+    name: ClassVar[str]
+    description: ClassVar[str]
+    config_model: ClassVar[type[BaseModel]] = None
     
     def __init__(self, config: StepConfig) -> None:
         super().__init__()
         self.id = str(uuid4())
-        self.config = config
-    
+        self.config = self.parse_config(config)
+
     @abstractmethod
     def execute(self, data: pl.LazyFrame) -> pl.LazyFrame:
         pass
     
+    def parse_config(self, config: StepConfig) -> BaseModel | None:
+        self.name = config.name or self.name
+        self.description = config.description or self.name
+        
+        if self.config_model is None:
+            return None
+        return self.config_model(**config.model_dump().get("parameters", {}))
     
 class StepProtocol(Protocol):
     def execute(self, data: pl.LazyFrame) -> pl.LazyFrame: ...

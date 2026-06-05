@@ -1,9 +1,31 @@
-import polars as pl
+
+from typing import Literal
 
 from crucible.models import Step
 
+import polars as pl
+from pydantic import BaseModel
+
+class PivotConfig(BaseModel):
+    on: list[str]
+    index: list[str]
+    values: list[str]
+    aggregate_function: Literal[
+        'first',
+        'last',
+        'sum',
+        'min',
+        'max',
+        'mean',
+        'median',
+        'len'
+    ] = 'first'
+
 class PivotStep(Step):
     key = "pivot"
+    name = "Pivot"
+    description = "Pivot the data from long to wide format."
+    config_model = PivotConfig
 
     def execute(self, data: pl.LazyFrame) -> pl.LazyFrame:
         return data.collect().pivot(

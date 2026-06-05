@@ -1,8 +1,9 @@
 from typing import Any
 
 import polars as pl
+from pydantic import BaseModel
 
-from crucible.models import Step
+from crucible.models import Step, StepConfig
 
 
 OPERATORS = {
@@ -20,9 +21,16 @@ OPERATORS = {
     "is_in": lambda col, value: col.is_in(value),
 }
 
+class SelectColumnsConfig(BaseModel):
+    column: str
+    operator: str
+    value: Any
 
 class FilterRowsStep(Step):
     key = "filter_rows"
+    name = "Filter Rows"
+    description = "Filter rows based on a condition applied to a column."
+    config_model = SelectColumnsConfig
 
     def execute(self, data: pl.LazyFrame) -> pl.LazyFrame:
         column = self.config.column

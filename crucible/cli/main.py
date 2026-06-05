@@ -9,6 +9,7 @@ from crucible.workflow import WorkflowExecutor
 from crucible.workflow.loader import WorkflowLoader
 from crucible.workflow.preprocessor import WorkflowPreprocessor
 from crucible.workflow.optimizer import WorkflowOptimizer
+from crucible.workflow.complier import WorkflowCompiler
 from crucible.models import Workflow, IOConfig
 
 logger = logging.getLogger(__name__)
@@ -40,20 +41,20 @@ class CrucibleCli:
         
         args = self.parse_args()
         logger.info("Running Crucible CLI")
-        logger.debug(f"Input: {args.input}, type: {type(args.input)}")
         
         workflow_loader = WorkflowLoader()
         workflow = workflow_loader.load(args.workflow)
-        logger.debug(f"Loaded workflow: {workflow}")
+        logger.info(f"Loaded workflow: '{workflow.name}'")
+        logger.debug(f"Loaded workflow details: '{workflow.model_dump()}'")
         
         preprocessor = WorkflowPreprocessor()
         workflow = preprocessor.preprocess(workflow)
-        logger.debug(f"Preprocessed workflow: {workflow}")
         
         optimizer = WorkflowOptimizer()
         workflow = optimizer.optimize(workflow)
-        logger.debug(f"Optimized workflow: {workflow}")
+        
+        compiler = WorkflowCompiler()
+        workflow_execution_plan = compiler.compile(workflow)
 
         executor = WorkflowExecutor()
-        plan = executor.build(workflow)
-        executor.run(plan)
+        executor.run(workflow_execution_plan)

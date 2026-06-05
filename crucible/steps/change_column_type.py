@@ -1,5 +1,7 @@
-from crucible.models import Step
+from crucible.models import Step, StepConfig
+
 import polars as pl
+from pydantic import BaseModel
 
 POLARS_TYPES = {
     "string": pl.String,
@@ -20,8 +22,14 @@ POLARS_TYPES = {
     "time": pl.Time,
 }
 
+class ChangeColumnTypeConfig(BaseModel):
+    column_types: dict[str, str]
+
 class ChangeColumnTypeStep(Step):
     key = "change_column_type"
+    name = "Change Column Type"
+    description = "Change the data type of one or more columns."
+    config_model = ChangeColumnTypeConfig
 
     def execute(self, data: pl.LazyFrame) -> pl.LazyFrame:
         return data.with_columns([
