@@ -138,3 +138,6 @@ data/*
 
 # VS Code settings
 .vscode/*
+
+# Test workflows
+test_workflows
