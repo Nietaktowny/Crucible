@@ -10,7 +10,7 @@ class ExcelIOManager(IOManager):
 
     def __init__(self, io_config: IOConfig):
         self.io_config = io_config
-        self.sheet = getattr(io_config, "sheet")
+        self.sheet = getattr(io_config, "sheet", None)
 
     def read(self, data: None) -> pl.LazyFrame:
         if self.sheet is not None:
