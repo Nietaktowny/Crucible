@@ -33,6 +33,11 @@ steps:
     columns:
       - name: Current mA
         direction: desc
+  - key: reorder_columns
+    columns:
+      - Locker
+      - APM
+      - Current mA
 
 output:
   path: data/currents/currents_2026-05-29.csv
