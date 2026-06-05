@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 import polars as pl
 from pydantic import BaseModel
@@ -21,25 +21,38 @@ OPERATORS = {
     "is_in": lambda col, value: col.is_in(value),
 }
 
-class SelectColumnsConfig(BaseModel):
+class FilterCondition(BaseModel):
     column: str
     operator: str
-    value: Any
+    value: Any = None
+
+
+class FilterRowsConfig(BaseModel):
+    logic: Literal["and", "or"] = "and"
+    conditions: list[FilterCondition]
 
 class FilterRowsStep(Step):
     key = "filter_rows"
     name = "Filter Rows"
     description = "Filter rows based on a condition applied to a column."
-    config_model = SelectColumnsConfig
+    config_model = FilterRowsConfig
 
     def execute(self, data: pl.LazyFrame) -> pl.LazyFrame:
-        column = self.config.column
-        operator = self.config.operator
-        value = getattr(self.config, "value", None)
+        expressions = []
 
-        try:
-            op = OPERATORS[operator]
-        except KeyError:
-            raise ValueError(f"Unsupported filter operator: {operator}") from None
+        for condition in self.config.conditions:
+            op = OPERATORS[condition.operator]
+            expressions.append(
+                op(pl.col(condition.column), condition.value)
+            )
 
-        return data.filter(op(pl.col(column), value))
+        if self.config.logic == "and":
+            predicate = expressions[0]
+            for expr in expressions[1:]:
+                predicate &= expr
+        else:
+            predicate = expressions[0]
+            for expr in expressions[1:]:
+                predicate |= expr
+
+        return data.filter(predicate)
