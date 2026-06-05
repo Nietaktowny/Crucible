@@ -7,3 +7,7 @@ pytest
 pytest-cov
 pyyaml
 rich
+xlsxwriter
+fastexcel
+xlsx2csv
+openpyxl 

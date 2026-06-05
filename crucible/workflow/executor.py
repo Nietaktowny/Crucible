@@ -4,7 +4,7 @@ import logging
 
 from crucible.models import Workflow, StepConfig, IOConfig, StepStatus, StepExecutionPlan, WorkflowExecutionPlan, StepProtocol
 from crucible.workflow.registry import StepsRegistry
-from crucible.io import IOManagerProtocol, CsvIOManager
+from crucible.io import IOManagerProtocol, CsvIOManager, ExcelIOManager
 
 
 logger = logging.getLogger(__name__)
@@ -16,6 +16,8 @@ class WorkflowExecutor:
     def get_io_manager(self, io_config: IOConfig) -> IOManagerProtocol:
         if io_config.type == ".csv":
             return CsvIOManager(io_config)
+        elif io_config.type in ['.xlsx', '.xls', '.ods']:
+            return ExcelIOManager(io_config=io_config)
         else:
             raise ValueError(f"Unsupported IO type: {io_config.type}")
         
