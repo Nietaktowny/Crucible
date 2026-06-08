@@ -20,6 +20,6 @@ class ExcelIOManager(IOManager):
         df = data.collect()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         if self.sheet is not None:
-            df.write_excel(self.path, sheet_name=self.sheet, table_style="Table Style Light 16",)
+            df.write_excel(self.path, worksheet=self.sheet, table_style="Table Style Light 16",)
         df.write_excel(self.path, table_style="Table Style Light 16",)
         return len(df)
