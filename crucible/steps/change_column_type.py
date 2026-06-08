@@ -1,3 +1,5 @@
+from typing import Literal
+
 from crucible.models import Step, StepExecutionContext
 
 import polars as pl
@@ -22,8 +24,26 @@ POLARS_TYPES = {
     "time": pl.Time,
 }
 
+
 class ChangeColumnTypeConfig(BaseModel):
-    column_types: dict[str, str]
+    column_types: dict[str, Literal[
+        "string",
+        "text",
+        "int8",
+        "int16",
+        "int32",
+        "int64",
+        "uint8",
+        "uint16",
+        "uint32",
+        "uint64",
+        "float32",
+        "float64",
+        "boolean",
+        "date",
+        "datetime",
+        "time",
+    ]]
 
 class ChangeColumnTypeStep(Step):
     key = "change_column_type"
