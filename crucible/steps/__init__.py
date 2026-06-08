@@ -23,6 +23,14 @@ from crucible.steps.read_folder_csv import ReadFolderCsvStep
 from crucible.steps.read_folder_excel import ReadFolderExcelStep
 from crucible.steps.fill_nulls import FillNullsStep
 from crucible.steps.regex_extract_step import RegexExtractStep
+from crucible.steps.split_column import SplitColumnStep
+from crucible.steps.parse_datetime import ParseDateTimeStep
+from crucible.steps.extract_datetime_part import ExtractDateTimePartStep
+from crucible.steps.extract_datetime import ExtractDateTimeStep
+from crucible.steps.date_diff import DateDiffStep
+from crucible.steps.date_add import DateAddStep
+from crucible.steps.date_range_filter import DateRangeFilterStep
+from crucible.steps.date_period_filter import DatePeriodFilterStep
 
 __all__ = [
     SelectColumnsStep,
@@ -49,5 +57,13 @@ __all__ = [
     ReadFolderCsvStep,
     ReadFolderExcelStep,
     FillNullsStep,
-    RegexExtractStep
+    RegexExtractStep,
+    SplitColumnStep,
+    ParseDateTimeStep,
+    ExtractDateTimeStep,
+    ExtractDateTimePartStep,
+    DateDiffStep,
+    DateAddStep,
+    DateRangeFilterStep,
+    DatePeriodFilterStep
 ]

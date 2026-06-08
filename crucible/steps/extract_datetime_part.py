@@ -1,0 +1,63 @@
+from typing import Literal
+
+import polars as pl
+from pydantic import BaseModel
+
+from crucible.models import Step, StepExecutionContext
+
+
+class ExtractDateTimePartConfig(BaseModel):
+    column: str
+    part: Literal[
+        "year",
+        "month",
+        "day",
+        "week",
+        "weekday",
+        "hour",
+        "minute",
+        "second",
+    ]
+
+    output_column: str | None = None
+
+
+class ExtractDateTimePartStep(Step):
+    key = "extract_datetime_part"
+    name = "Extract Date/Time Part"
+    description = "Extract a selected part from a date, datetime, or time column."
+    config_model = ExtractDateTimePartConfig
+
+    def execute(
+        self,
+        data: pl.LazyFrame,
+        context: StepExecutionContext = None,
+    ) -> pl.LazyFrame:
+        output_column = self.config.output_column or f"{self.config.column}_{self.config.part}"
+
+        expression = self._build_expression().alias(output_column)
+
+        return data.with_columns(expression)
+
+    def _build_expression(self) -> pl.Expr:
+        column = pl.col(self.config.column)
+
+        match self.config.part:
+            case "year":
+                return column.dt.year()
+            case "month":
+                return column.dt.month()
+            case "day":
+                return column.dt.day()
+            case "week":
+                return column.dt.week()
+            case "weekday":
+                return column.dt.weekday()
+            case "hour":
+                return column.dt.hour()
+            case "minute":
+                return column.dt.minute()
+            case "second":
+                return column.dt.second()
+            case _:
+                raise ValueError(f"Unsupported date/time part: {self.config.part}")
