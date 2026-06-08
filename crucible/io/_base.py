@@ -9,15 +9,15 @@ class IOManager(ABC):
     kind: str
     
     @abstractmethod
-    def read(self, config: IOConfig) -> pl.LazyFrame:
+    def read(self) -> pl.LazyFrame:
         raise NotImplementedError
 
     @abstractmethod
-    def write(self, frame: pl.LazyFrame, config: IOConfig) -> int:
+    def write(self, frame: pl.LazyFrame) -> int:
         raise NotImplementedError
     
     
 class IOManagerProtocol(Protocol):
-    def read(self, config: IOConfig) -> pl.LazyFrame: ...
+    def read(self) -> pl.LazyFrame: ...
     
-    def write(self, frame: pl.LazyFrame, config: IOConfig) -> int: ...
+    def write(self, frame: pl.LazyFrame) -> int: ...

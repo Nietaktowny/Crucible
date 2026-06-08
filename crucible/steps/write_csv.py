@@ -3,7 +3,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from crucible.io import CsvIOManager
-from crucible.models import StepConfig, Step
+from crucible.models import StepConfig, Step, StepExecutionContext
 
 import polars as pl
 
@@ -21,6 +21,6 @@ class WriteCsvStep(Step):
         super().__init__(config)
         self.io_manager = CsvIOManager(self.config.path, self.config.separator)
 
-    def execute(self, data: pl.LazyFrame = None) -> pl.LazyFrame:
+    def execute(self, data: pl.LazyFrame = None, context: StepExecutionContext = None) -> pl.LazyFrame:
         self.io_manager.write(data)
         return data

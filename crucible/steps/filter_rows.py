@@ -3,7 +3,7 @@ from typing import Any, Literal
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepConfig
+from crucible.models import Step, StepExecutionContext
 
 
 OPERATORS = {
@@ -37,7 +37,7 @@ class FilterRowsStep(Step):
     description = "Filter rows based on a condition applied to a column."
     config_model = FilterRowsConfig
 
-    def execute(self, data: pl.LazyFrame) -> pl.LazyFrame:
+    def execute(self, data: pl.LazyFrame, context: StepExecutionContext = None) -> pl.LazyFrame:
         expressions = []
 
         for condition in self.config.conditions:

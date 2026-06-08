@@ -1,4 +1,4 @@
-from crucible.models import Step, StepConfig
+from crucible.models import Step, StepExecutionContext
 
 import polars as pl
 from pydantic import BaseModel
@@ -31,7 +31,7 @@ class ChangeColumnTypeStep(Step):
     description = "Change the data type of one or more columns."
     config_model = ChangeColumnTypeConfig
 
-    def execute(self, data: pl.LazyFrame) -> pl.LazyFrame:
+    def execute(self, data: pl.LazyFrame, context: StepExecutionContext = None) -> pl.LazyFrame:
         return data.with_columns([
             pl.col(col).cast(POLARS_TYPES.get(dtype))
             for col, dtype in self.config.column_types.items()

@@ -1,7 +1,7 @@
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step
+from crucible.models import Step, StepExecutionContext
 
 class SortRowsConfig(BaseModel):
     columns: list[dict[str, str]]
@@ -12,7 +12,7 @@ class SortRowsStep(Step):
     description = "Sort rows based on specified columns and sort directions."
     config_model = SortRowsConfig
 
-    def execute(self, data: pl.LazyFrame) -> pl.LazyFrame:
+    def execute(self, data: pl.LazyFrame, context: StepExecutionContext = None) -> pl.LazyFrame:
         by = [column["name"] for column in self.config.columns]
 
         descending = [

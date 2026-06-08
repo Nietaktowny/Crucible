@@ -1,7 +1,7 @@
 
 from typing import Literal
 
-from crucible.models import Step
+from crucible.models import Step, StepExecutionContext
 
 import polars as pl
 from pydantic import BaseModel
@@ -27,7 +27,7 @@ class PivotStep(Step):
     description = "Pivot the data from long to wide format."
     config_model = PivotConfig
 
-    def execute(self, data: pl.LazyFrame) -> pl.LazyFrame:
+    def execute(self, data: pl.LazyFrame, context: StepExecutionContext = None) -> pl.LazyFrame:
         return data.collect().pivot(
             on=self.config.on,
             index=self.config.index,

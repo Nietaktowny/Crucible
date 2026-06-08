@@ -6,7 +6,10 @@ from crucible.models._workflow import (
     StepStatus,
     WorkflowExecutionPlan,
     Step,
-    StepProtocol    
+    StepProtocol,
+    StepExecutionContext,
+    MultiSourcesStep,
+    MultiSourcesStepConfig
 )
 
 __all__ = [
@@ -15,5 +18,7 @@ __all__ = [
     StepConfig,
     StepExecutionPlan, StepStatus,
     WorkflowExecutionPlan,
-    Step, StepProtocol
+    Step, StepProtocol,
+    MultiSourcesStep, StepExecutionContext,
+    MultiSourcesStepConfig
 ]

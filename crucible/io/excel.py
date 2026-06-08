@@ -11,7 +11,7 @@ class ExcelIOManager(IOManager):
         self.path = path
         self.sheet = sheet
         
-    def read(self, data: None) -> pl.LazyFrame:
+    def read(self) -> pl.LazyFrame:
         if self.sheet is not None:
             return pl.read_excel(self.path, sheet_name=self.sheet, engine='calamine').lazy()
         return pl.read_excel(self.path, engine='calamine', sheet_id=1).lazy()
