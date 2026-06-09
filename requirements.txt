@@ -10,4 +10,7 @@ rich
 xlsxwriter
 fastexcel
 xlsx2csv
-openpyxl 
+openpyxl
+platformdirs
+fastapi
+uvicorn
