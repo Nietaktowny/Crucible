@@ -52,11 +52,17 @@ class ExpressionBuilder:
                     .then(None)
                     .otherwise(args[0] / args[1])
                 )
-
             case "round":
                 self._require_args(expression, 2)
-                return args[0].round(args[1])
+                decimals_arg = expression.args[1]
+                
+                if not isinstance(decimals_arg, ValueExpression):
+                    raise ValueError("Operation 'round' requires second argument to be a literal integer.")
 
+                if not isinstance(decimals_arg.value, int):
+                    raise ValueError("Operation 'round' requires second argument to be a literal integer.")
+
+                return args[0].round(decimals_arg.value)
             case "abs":
                 self._require_args(expression, 1)
                 return args[0].abs()

@@ -9,7 +9,7 @@ from crucible.workflow import WorkflowExecutor
 from crucible.workflow.loader import WorkflowLoader
 from crucible.workflow.preprocessor import WorkflowPreprocessor
 from crucible.workflow.optimizer import WorkflowOptimizer
-from crucible.workflow.complier import WorkflowCompiler
+from crucible.workflow.compiler import WorkflowCompiler
 from crucible.workflow.registry import StepsRegistry
 
 logger = logging.getLogger(__name__)

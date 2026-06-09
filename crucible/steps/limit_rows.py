@@ -20,7 +20,7 @@ class LimitRowsStep(Step):
         if self.config.mode == 'head':
             return data.head(self.config.limit)
         elif self.config.mode == 'tail':
-            return data.tail(self.config.tail(self.config.limit))
+            return data.tail(self.config.limit)
         else:
             raise ValueError(f"Unknown limit rows mode for LimitRowsStep, passed: {self.config.mode}. Expected one of: {['head', 'tail']}")
             

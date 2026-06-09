@@ -12,7 +12,7 @@ class ConcatConfig(BaseModel):
 
 class ConcatStep(Step):
     key = "concat"
-    name = "Concatenate rows"
+    name = "Concatenate"
     description = "Append rows from multiple sources"
     config_model = ConcatConfig
 

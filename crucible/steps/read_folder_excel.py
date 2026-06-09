@@ -45,8 +45,11 @@ class ReadFolderExcelStep(Step):
         frames: list[pl.LazyFrame] = []
 
         for file in files:
-            io_manager = ExcelIOManager(file, self.config.sheet)
-            frame = io_manager.read()
+            try:
+                io_manager = ExcelIOManager(file, self.config.sheet)
+                frame = io_manager.read()
+            except Exception as e:
+                continue
 
             if self.config.add_source_file:
                 frame = frame.with_columns(
