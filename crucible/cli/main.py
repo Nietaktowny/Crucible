@@ -5,11 +5,8 @@ import logging
 from rich.traceback import install
 from rich.logging import RichHandler
 
-from crucible.workflow import WorkflowExecutor
 from crucible.workflow.loader import WorkflowLoader
-from crucible.workflow.preprocessor import WorkflowPreprocessor
-from crucible.workflow.optimizer import WorkflowOptimizer
-from crucible.workflow.compiler import WorkflowCompiler
+from crucible.runner import run_workflow
 from crucible.workflow.registry import StepsRegistry
 
 logger = logging.getLogger(__name__)
@@ -95,21 +92,10 @@ class CrucibleCli:
         raise ValueError("No command provided. Use: run, add-step, remove-step, list-steps.")
 
     def run_workflow(self, workflow_path: Path):
-        workflow_loader = WorkflowLoader()
-        workflow = workflow_loader.load(workflow_path)
-
-        preprocessor = WorkflowPreprocessor()
-        workflow = preprocessor.preprocess(workflow)
-
-        optimizer = WorkflowOptimizer()
-        workflow = optimizer.optimize(workflow)
-
-        compiler = WorkflowCompiler()
-        workflow_execution_plan = compiler.compile(workflow)
-        compiler.print_execution_plan(workflow_execution_plan)
-
-        executor = WorkflowExecutor()
-        executor.run(workflow_execution_plan)
+        run_workflow(
+            workflow_path=workflow_path,
+            print_plan=True,
+        )
 
     def add_step(self, workflow_path: Path, step_key: str, index: int | None = None):
         loader = WorkflowLoader()
