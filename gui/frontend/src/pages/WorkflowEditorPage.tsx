@@ -1,6 +1,7 @@
-import { useMemo, useRef, useState } from "react";
-import { parse } from "yaml";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { parse, stringify } from "yaml";
 
+import ErrorPanel from "@/components/ErrorPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -8,13 +9,31 @@ import StepConfigPanel from "@/features/workflow/StepConfigPanel";
 import StepLibrary from "@/features/workflow/StepLibrary";
 import WorkflowRightPanel from "@/features/workflow/WorkflowRightPanel";
 import { stepRegistry, type StepKey } from "@/features/workflow/stepRegistry";
-import type { Workflow, WorkflowStep } from "@/features/workflow/types";
+import {
+  isMultiSourceStep,
+  type Workflow,
+  type WorkflowEditorStep,
+  type WorkflowSourceStep,
+  type WorkflowStep,
+} from "@/features/workflow/types";
+import {
+  createWorkflow,
+  getWorkflow,
+  listWorkflows,
+  runWorkflow,
+  updateWorkflow,
+  type WorkflowSummary,
+} from "@/lib/crucibleApi";
+
+const MULTI_SOURCE_STEP_KEYS = new Set<StepKey>(["join", "concat"] as StepKey[]);
 
 type LoadedWorkflowStep = {
   key: StepKey;
   name?: string;
   description?: string;
   parameters?: Record<string, unknown>;
+  alias?: string;
+  sources?: LoadedWorkflowStep[];
 };
 
 type LoadedWorkflow = {
@@ -22,8 +41,75 @@ type LoadedWorkflow = {
   steps?: LoadedWorkflowStep[];
 };
 
+type ErrorWithDetails = Error & {
+  details?: unknown;
+};
+
 function isStepKey(value: string): value is StepKey {
   return value in stepRegistry;
+}
+
+function isMultiSourceStepKey(key: StepKey): boolean {
+  return MULTI_SOURCE_STEP_KEYS.has(key);
+}
+
+function workflowSourceStepFromYamlObject(
+  rawStep: LoadedWorkflowStep,
+): WorkflowSourceStep {
+  const step = workflowStepFromYamlObject(rawStep);
+
+  const sourceStep: WorkflowSourceStep = {
+    id: step.id,
+    key: step.key,
+    name: step.name,
+    description: step.description,
+    parameters: step.parameters,
+    alias: rawStep.alias,
+  };
+
+  if (isMultiSourceStep(step)) {
+    sourceStep.sources = step.sources;
+  }
+
+  return sourceStep;
+}
+
+function workflowStepFromYamlObject(
+  rawStep: LoadedWorkflowStep,
+): WorkflowEditorStep {
+  if (!rawStep.key || !isStepKey(String(rawStep.key))) {
+    throw new Error(`Unknown step key: ${String(rawStep.key)}`);
+  }
+
+  const definition = stepRegistry[rawStep.key];
+  const { key, name, description, parameters = {}, sources } = rawStep;
+
+  const step: WorkflowStep = {
+    id: crypto.randomUUID(),
+    key,
+    name: name ?? definition.label,
+    description: description ?? definition.description,
+    parameters: {
+      ...structuredClone(definition.defaultConfig),
+      ...parameters,
+    },
+  };
+
+  if (Array.isArray(sources)) {
+    return {
+      ...step,
+      sources: sources.map(workflowSourceStepFromYamlObject),
+    };
+  }
+
+  if (isMultiSourceStepKey(key)) {
+    return {
+      ...step,
+      sources: [],
+    };
+  }
+
+  return step;
 }
 
 function workflowFromYamlObject(data: LoadedWorkflow): Workflow {
@@ -33,31 +119,48 @@ function workflowFromYamlObject(data: LoadedWorkflow): Workflow {
 
   return {
     name: data.name ?? "loaded_workflow",
-    steps: data.steps.map((rawStep): WorkflowStep => {
-      if (!rawStep.key || !isStepKey(String(rawStep.key))) {
-        throw new Error(`Unknown step key: ${String(rawStep.key)}`);
-      }
-
-      const definition = stepRegistry[rawStep.key];
-      const { key, name, description, parameters = {} } = rawStep;
-
-      return {
-        id: crypto.randomUUID(),
-        key,
-        name: name ?? definition.label,
-        description: description ?? definition.description,
-        parameters: {
-          ...structuredClone(definition.defaultConfig),
-          ...parameters,
-        },
-      };
-    }),
+    steps: data.steps.map(workflowStepFromYamlObject),
   };
+}
+
+function stepToYamlObject(step: WorkflowEditorStep | WorkflowSourceStep) {
+  const result: Record<string, unknown> = {
+    key: step.key,
+    name: step.name,
+    description: step.description,
+    parameters: step.parameters,
+  };
+
+  if ("alias" in step && step.alias) {
+    result.alias = step.alias;
+  }
+
+  if (isMultiSourceStep(step)) {
+    result.sources = step.sources.map(stepToYamlObject);
+  }
+
+  return result;
+}
+
+function workflowToYaml(workflow: Workflow): string {
+  return stringify(
+    {
+      name: workflow.name,
+      steps: workflow.steps.map(stepToYamlObject),
+    },
+    {
+      defaultStringType: "QUOTE_DOUBLE",
+    },
+  );
 }
 
 export default function WorkflowEditorPage() {
   const [darkMode, setDarkMode] = useState(true);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [serverWorkflows, setServerWorkflows] = useState<WorkflowSummary[]>([]);
+  const [selectedServerWorkflow, setSelectedServerWorkflow] = useState("");
+  const [isLinkedToServer, setIsLinkedToServer] = useState(false);
 
   const [workflow, setWorkflow] = useState<Workflow>({
     name: "example_workflow",
@@ -65,22 +168,152 @@ export default function WorkflowEditorPage() {
   });
 
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+  const [status, setStatus] = useState("");
+
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<string | undefined>();
 
   const selectedStep = useMemo(
     () => workflow.steps.find((step) => step.id === selectedStepId) ?? null,
     [workflow.steps, selectedStepId],
   );
 
-  function addStep(key: StepKey) {
+  async function refreshServerWorkflows() {
+    const result = await listWorkflows();
+    setServerWorkflows(result.workflows);
+  }
+
+  async function loadWorkflowFromServer(name: string) {
+    setErrorMessage(null);
+    setErrorDetails(undefined);
+
+    const result = await getWorkflow(name);
+    const parsed = parse(result.content) as LoadedWorkflow;
+    const loadedWorkflow = workflowFromYamlObject(parsed);
+
+    setWorkflow(loadedWorkflow);
+    setSelectedServerWorkflow(result.name);
+    setIsLinkedToServer(true);
+    setSelectedStepId(loadedWorkflow.steps[0]?.id ?? null);
+    setStatus(`Loaded ${result.name}`);
+  }
+
+  async function handleServerWorkflowChange(name: string) {
+    if (!name) {
+      setSelectedServerWorkflow("");
+      return;
+    }
+
+    try {
+      await loadWorkflowFromServer(name);
+    } catch (error) {
+      console.error(error);
+
+      const message =
+        error instanceof Error ? error.message : "Failed to load workflow.";
+
+      const details = (error as ErrorWithDetails).details;
+
+      setErrorMessage(message);
+      setErrorDetails(details ? JSON.stringify(details, null, 2) : undefined);
+      setStatus("Failed to load workflow.");
+    }
+  }
+
+  async function saveWorkflowToServer() {
+    setErrorMessage(null);
+    setErrorDetails(undefined);
+
+    const content = workflowToYaml(workflow);
+
+    if (isLinkedToServer && selectedServerWorkflow) {
+      await updateWorkflow(selectedServerWorkflow, content);
+      setStatus(`Saved ${selectedServerWorkflow}`);
+      return;
+    }
+
+    const result = await createWorkflow(workflow.name, content);
+
+    setSelectedServerWorkflow(result.name);
+    setIsLinkedToServer(true);
+    await refreshServerWorkflows();
+
+    setStatus(`Created ${result.name}`);
+  }
+
+  async function runSelectedWorkflow() {
+    if (!selectedServerWorkflow) {
+      setStatus("No workflow selected.");
+      return;
+    }
+
+    setErrorMessage(null);
+    setErrorDetails(undefined);
+    setStatus("Running workflow...");
+
+    try {
+      const result = await runWorkflow(selectedServerWorkflow);
+      setStatus(result.message);
+    } catch (error) {
+      console.error(error);
+
+      const message =
+        error instanceof Error ? error.message : "Workflow execution failed.";
+
+      const details = (error as ErrorWithDetails).details;
+
+      setStatus("Workflow failed.");
+      setErrorMessage(message);
+      setErrorDetails(details ? JSON.stringify(details, null, 2) : undefined);
+    }
+  }
+
+  useEffect(() => {
+    refreshServerWorkflows().catch((error) => {
+      console.error(error);
+      setStatus(
+        error instanceof Error ? error.message : "Failed to load workflows.",
+      );
+    });
+  }, []);
+
+  function createNewWorkflow() {
+    setWorkflow({
+      name: "new_workflow",
+      steps: [],
+    });
+
+    setSelectedServerWorkflow("");
+    setIsLinkedToServer(false);
+    setSelectedStepId(null);
+    setStatus("New unsaved workflow.");
+    setErrorMessage(null);
+    setErrorDetails(undefined);
+  }
+
+  function createStepFromRegistry(key: StepKey): WorkflowEditorStep {
     const definition = stepRegistry[key];
 
-    const newStep: WorkflowStep = {
+    const step: WorkflowStep = {
       id: crypto.randomUUID(),
       key,
       name: definition.label,
       description: definition.description,
       parameters: structuredClone(definition.defaultConfig),
     };
+
+    if (isMultiSourceStepKey(key)) {
+      return {
+        ...step,
+        sources: [],
+      };
+    }
+
+    return step;
+  }
+
+  function addStep(key: StepKey) {
+    const newStep = createStepFromRegistry(key);
 
     setWorkflow((current) => {
       if (!selectedStepId) {
@@ -152,6 +385,22 @@ export default function WorkflowEditorPage() {
     }));
   }
 
+  function updateSelectedStepSources(sources: WorkflowSourceStep[]) {
+    if (!selectedStepId) return;
+
+    setWorkflow((current) => ({
+      ...current,
+      steps: current.steps.map((step) =>
+        step.id === selectedStepId && isMultiSourceStep(step)
+          ? {
+              ...step,
+              sources,
+            }
+          : step,
+      ),
+    }));
+  }
+
   function removeStep(stepId: string) {
     setWorkflow((current) => ({
       ...current,
@@ -168,13 +417,19 @@ export default function WorkflowEditorPage() {
     removeStep(selectedStepId);
   }
 
-  async function loadWorkflowFromFile(file: File) {
+  async function importWorkflowFromFile(file: File) {
+    setErrorMessage(null);
+    setErrorDetails(undefined);
+
     const text = await file.text();
     const parsed = parse(text) as LoadedWorkflow;
     const loadedWorkflow = workflowFromYamlObject(parsed);
 
     setWorkflow(loadedWorkflow);
+    setSelectedServerWorkflow("");
+    setIsLinkedToServer(false);
     setSelectedStepId(loadedWorkflow.steps[0]?.id ?? null);
+    setStatus(`Imported ${file.name}`);
   }
 
   async function handleWorkflowFileChange(
@@ -185,10 +440,16 @@ export default function WorkflowEditorPage() {
     if (!file) return;
 
     try {
-      await loadWorkflowFromFile(file);
+      await importWorkflowFromFile(file);
     } catch (error) {
       console.error(error);
-      alert(error instanceof Error ? error.message : "Failed to load workflow.");
+
+      const message =
+        error instanceof Error ? error.message : "Failed to import workflow.";
+
+      setErrorMessage(message);
+      setErrorDetails(undefined);
+      setStatus("Failed to import workflow.");
     } finally {
       event.target.value = "";
     }
@@ -213,6 +474,53 @@ export default function WorkflowEditorPage() {
             }
           />
 
+          <Button variant="outline" onClick={createNewWorkflow}>
+            New
+          </Button>
+
+          <select
+            className="h-9 rounded-md border bg-background px-3 text-sm"
+            value={selectedServerWorkflow}
+            onChange={(event) =>
+              handleServerWorkflowChange(event.target.value)
+            }
+          >
+            <option value="">Select workflow</option>
+            {serverWorkflows.map((item) => (
+              <option key={item.name} value={item.name}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+
+          <Button
+            variant="outline"
+            onClick={() => {
+              saveWorkflowToServer().catch((error) => {
+                console.error(error);
+
+                const message =
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to save workflow.";
+
+                const details = (error as ErrorWithDetails).details;
+
+                setErrorMessage(message);
+                setErrorDetails(
+                  details ? JSON.stringify(details, null, 2) : undefined,
+                );
+                setStatus("Failed to save workflow.");
+              });
+            }}
+          >
+            Save
+          </Button>
+
+          <Button variant="outline" onClick={runSelectedWorkflow}>
+            Run
+          </Button>
+
           <input
             ref={fileInputRef}
             type="file"
@@ -225,10 +533,16 @@ export default function WorkflowEditorPage() {
             variant="outline"
             onClick={() => fileInputRef.current?.click()}
           >
-            Load workflow
+            Import
           </Button>
 
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-3">
+            {status && (
+              <div className="max-w-[360px] truncate text-sm text-muted-foreground">
+                {status}
+              </div>
+            )}
+
             <Button
               variant="outline"
               onClick={() => setDarkMode((value) => !value)}
@@ -245,6 +559,7 @@ export default function WorkflowEditorPage() {
             step={selectedStep}
             onUpdateParameters={updateSelectedStepParameters}
             onUpdateMetadata={updateSelectedStepMetadata}
+            onUpdateSources={updateSelectedStepSources}
             onRemoveStep={removeSelectedStep}
           />
 
@@ -254,6 +569,18 @@ export default function WorkflowEditorPage() {
             onSelectStep={setSelectedStepId}
           />
         </main>
+
+        {errorMessage && (
+          <ErrorPanel
+            title="Workflow error"
+            message={errorMessage}
+            details={errorDetails}
+            onClose={() => {
+              setErrorMessage(null);
+              setErrorDetails(undefined);
+            }}
+          />
+        )}
       </div>
     </div>
   );

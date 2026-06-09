@@ -2,21 +2,40 @@ import { useState } from "react";
 import { stringify } from "yaml";
 
 import { Button } from "@/components/ui/button";
-import type { Workflow } from "@/features/workflow/types";
+import {
+  isMultiSourceStep,
+  type Workflow,
+  type WorkflowEditorStep,
+  type WorkflowSourceStep,
+} from "@/features/workflow/types";
 
 type WorkflowPreviewProps = {
   workflow: Workflow;
 };
 
+function stepToYamlObject(step: WorkflowEditorStep | WorkflowSourceStep) {
+  const result: Record<string, unknown> = {
+    key: step.key,
+    name: step.name,
+    description: step.description,
+    parameters: step.parameters,
+  };
+
+  if ("alias" in step && step.alias) {
+    result.alias = step.alias;
+  }
+
+  if (isMultiSourceStep(step)) {
+    result.sources = step.sources.map(stepToYamlObject);
+  }
+
+  return result;
+}
+
 function toYamlObject(workflow: Workflow) {
   return {
     name: workflow.name,
-    steps: workflow.steps.map((step) => ({
-      key: step.key,
-      name: step.name,
-      description: step.description,
-      parameters: step.parameters,
-    })),
+    steps: workflow.steps.map(stepToYamlObject),
   };
 }
 

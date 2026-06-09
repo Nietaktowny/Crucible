@@ -1,17 +1,17 @@
 {
   "name": "frontend",
+  "productName": "Crucible",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:electron-main": "tsc -p tsconfig.electron.json",
-    "dev:electron": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && npm run build:electron-main && electron .\"",
-    "build:electron": "npm run build && npm run build:electron-main && electron-builder",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "dev:frontend": "vite",
+    "dev:backend": "cd ../.. && .venv\\Scripts\\python.exe -m uvicorn crucible_server.app:create_app --factory --reload",
+    "dev:electron": "electron .",
+    "dev": "concurrently -k \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:electron\"",
+    "build": "vite build && tsc -p tsconfig.electron.json",
+    "dist": "npm run build && electron-builder --win"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.9",
@@ -36,9 +36,9 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
-    "concurrently": "^9.2.1",
+    "concurrently": "^10.0.3",
     "electron": "^39.2.7",
-    "electron-builder": "^26.0.12",
+    "electron-builder": "^26.15.2",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
@@ -50,29 +50,21 @@
     "wait-on": "^8.0.5"
   },
   "build": {
-    "appId": "dev.nietaktowny.crucible",
+    "appId": "pl.crucible.app",
     "productName": "Crucible",
-    "directories": {
-      "output": "release"
-    },
     "files": [
-      "dist/**/*",
-      "dist-electron/**/*",
+      "dist/**",
+      "dist-electron/**",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "../../dist-python/crucible-server.exe",
+        "to": "backend/crucible-server.exe"
+      }
+    ],
     "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "target": "nsis"
     }
   }
 }

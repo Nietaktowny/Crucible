@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
-import type { WorkflowStep } from "@/features/workflow/types";
+import {
+  isMultiSourceStep,
+  type WorkflowEditorStep,
+} from "@/features/workflow/types";
 
 type WorkflowStepsProps = {
-  steps: WorkflowStep[];
+  steps: WorkflowEditorStep[];
   selectedStepId: string | null;
   onSelectStep: (stepId: string) => void;
   onRemoveStep: (stepId: string) => void;
@@ -41,6 +44,9 @@ export default function WorkflowSteps({
 
               <div className="truncate text-xs text-muted-foreground">
                 {step.key}
+                {isMultiSourceStep(step)
+                  ? ` · ${step.sources.length} source(s)`
+                  : ""}
               </div>
             </button>
 

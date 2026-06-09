@@ -1,12 +1,12 @@
-from typing import Literal, Any
+from typing import Literal
+
+import polars as pl
+from pydantic import BaseModel
 
 from crucible.models import Step, StepExecutionContext
 
-import polars as pl
-from pydantic import BaseModel, computed_field
-
 class JoinConfig(BaseModel):
-    left_on:  str | list[str]
+    left_on: str | list[str]
     right_on: str | list[str]
     how: Literal["left", "inner", "right", "full", "anti", "cross"] = "left"
 
@@ -19,15 +19,21 @@ class JoinStep(Step):
     def execute(
         self,
         data: pl.LazyFrame,
-        context: StepExecutionContext = None,
+        context: StepExecutionContext | None = None,
     ) -> pl.LazyFrame:
-        right = context.extra_inputs.pop("right")
+        if context is None:
+            raise ValueError("JoinStep requires execution context")
+
+        right = context.extra_inputs.get("right")
+
+        if right is None:
+            raise ValueError(
+                "JoinStep requires extra input named 'right'. "
+                f"Available extra inputs: {list(context.extra_inputs.keys())}"
+            )
 
         if self.config.how == "cross":
-            return data.join(
-                other=right,
-                how="cross",
-            )
+            return data.join(other=right, how="cross")
 
         return data.join(
             other=right,

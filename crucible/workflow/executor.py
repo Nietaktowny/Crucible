@@ -18,4 +18,4 @@ class WorkflowExecutor:
             except Exception as e:
                 step_execution_plan.status = StepStatus.FAILED
                 logger.error(f"Step {step.key} failed with error: {e}")
-                break
+                raise e
