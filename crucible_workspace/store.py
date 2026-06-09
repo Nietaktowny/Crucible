@@ -76,3 +76,10 @@ class WorkflowStore:
             raise InvalidWorkflowNameError(
                 "Workflow name may contain only letters, numbers, dots, underscores and dashes"
             )
+            
+    def get_workflow_info(self, name: str) -> WorkflowInfo:
+        path = self._get_existing_workflow_path(name)
+        return WorkflowInfo(name=name, path=path)
+
+    def get_workflow_path(self, name: str) -> Path:
+        return self._get_existing_workflow_path(name)
