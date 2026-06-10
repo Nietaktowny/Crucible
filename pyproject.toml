@@ -55,6 +55,9 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-cov",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+    "mkdocs-mermaid2-plugin"
 ]
 
 [project.urls]

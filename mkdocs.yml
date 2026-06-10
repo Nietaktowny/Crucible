@@ -1,0 +1,26 @@
+site_name: Crucible
+site_description: Local-first workflow engine for data transformation and reporting
+repo_url: https://github.com/Nietaktowny/Crucible
+theme:
+  name: material
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - getting-started.md
+  - User Guide:
+      - workflows.md
+  - Code reference:
+    - reference.md
+
+plugins:
+  - search
+  - mkdocstrings
+  - mermaid2
+
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid_custom
