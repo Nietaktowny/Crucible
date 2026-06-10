@@ -3498,7 +3498,7 @@ def test_join_fails_without_context():
         )
     )
 
-    with pytest.raises(AttributeError):
+    with pytest.raises(ValueError):
         step.execute(left, None)
 
 
@@ -3517,7 +3517,7 @@ def test_join_fails_when_context_has_no_right_input():
         )
     )
 
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         step.execute(left, context)
 
 

@@ -24,7 +24,7 @@ class JoinStep(Step):
         if context is None:
             raise ValueError("JoinStep requires execution context")
 
-        right = context.extra_inputs.get("right")
+        right = context.extra_inputs.pop("right", None)
 
         if right is None:
             raise ValueError(
