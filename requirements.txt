@@ -15,4 +15,4 @@ platformdirs
 fastapi
 fastapi[standard]
 uvicorn
-httpx2
+httpx

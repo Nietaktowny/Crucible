@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "crucible"
+version = "0.1.0"
+description = "Local-first workflow engine for data transformation and reporting"
+readme = "README.md"
+requires-python = ">=3.13"
+license = "Apache-2.0"
+
+authors = [
+    { name = "Wojciech" }
+]
+
+keywords = [
+    "etl",
+    "data-engineering",
+    "workflow",
+    "polars",
+    "data-transformation",
+    "power-query"
+]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "polars",
+    "pandas",
+    "duckdb",
+    "sqlalchemy",
+    "pydantic",
+    "pyyaml",
+    "rich",
+    "xlsxwriter",
+    "fastexcel",
+    "xlsx2csv",
+    "openpyxl",
+    "platformdirs",
+    "fastapi",
+    "fastapi[standard]",
+    "uvicorn",
+    "httpx",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+]
+
+[project.urls]
+Homepage = "https://github.com/Nietaktowny/Crucible"
+Repository = "https://github.com/Nietaktowny/Crucible"
+Issues = "https://github.com/Nietaktowny/Crucible/issues"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra"
+
+[tool.coverage.run]
+source = ["crucible"]
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["crucible*"]
