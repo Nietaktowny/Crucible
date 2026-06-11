@@ -1,7 +1,8 @@
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingColumnsGuard
 
 
 class DropNullsConfig(BaseModel):
@@ -13,6 +14,11 @@ class DropNullsStep(Step):
     name = "Drop Nulls"
     description = "Remove rows containing null values."
     config_model = DropNullsConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        if self.config.columns:
+            return [MissingColumnsGuard(self.config.columns)]
+        return []
 
     def execute(
         self,

@@ -1,7 +1,8 @@
 
 from typing import Literal
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingColumnsGuard
 
 import polars as pl
 from pydantic import BaseModel
@@ -26,6 +27,10 @@ class PivotStep(Step):
     name = "Pivot"
     description = "Pivot the data from long to wide format."
     config_model = PivotConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        all_columns = self.config.on + self.config.index + self.config.values
+        return [MissingColumnsGuard(all_columns)]
 
     def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
         result = data.df.collect().pivot(

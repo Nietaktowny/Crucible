@@ -3,7 +3,8 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingColumnsGuard
 
 class JoinConfig(BaseModel):
     left_on: str | list[str]
@@ -15,6 +16,16 @@ class JoinStep(Step):
     name = "Join"
     description = "Join two datasets"
     config_model = JoinConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        if self.config.how == "cross":
+            return []
+        columns_to_check = []
+        if isinstance(self.config.left_on, list):
+            columns_to_check.extend(self.config.left_on)
+        else:
+            columns_to_check.append(self.config.left_on)
+        return [MissingColumnsGuard(columns_to_check)]
 
     def execute(
         self,

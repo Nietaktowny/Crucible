@@ -3,7 +3,8 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingColumnsGuard
 
 
 class AggregationConfig(BaseModel):
@@ -33,6 +34,13 @@ class GroupByStep(Step):
     name = "Group By"
     description = "Group rows and calculate aggregations."
     config_model = GroupByConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        columns_to_check = self.config.by.copy()
+        for agg in self.config.aggregations:
+            if agg.function != "len":  # 'len' doesn't require a column
+                columns_to_check.append(agg.column)
+        return [MissingColumnsGuard(columns_to_check)]
 
     def _build_aggregation(self, aggregation: AggregationConfig) -> pl.Expr:
         column = pl.col(aggregation.column)

@@ -1,6 +1,6 @@
 from typing import Literal, Any
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
 
 import polars as pl
 from pydantic import BaseModel, computed_field
@@ -15,6 +15,9 @@ class ConcatStep(Step):
     name = "Concatenate"
     description = "Append rows from multiple sources"
     config_model = ConcatConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        return []
 
     def execute(self, data: FrameContext, context: StepExecutionContext | None = None) -> FrameContext:
         extra_inputs = list(context.extra_inputs.values())

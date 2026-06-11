@@ -4,7 +4,8 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel, model_validator
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard
 
 
 class DateRangeFilterConfig(BaseModel):
@@ -22,6 +23,12 @@ class DateRangeFilterStep(Step):
     name = "Date Range Filter"
     description = "Filter rows where a date or datetime column is within a range."
     config_model = DateRangeFilterConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        return [
+            MissingColumnsGuard([self.config.column]),
+            ColumnsTypeGuard({self.config.column: ["Date", "Datetime"]}),
+        ]
 
     def execute(
         self,

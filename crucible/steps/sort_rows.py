@@ -3,7 +3,8 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingColumnsGuard
 
 class SortColumnConfig(BaseModel):
     name: str
@@ -17,6 +18,10 @@ class SortRowsStep(Step):
     name = "Sort Rows"
     description = "Sort rows based on specified columns and sort directions."
     config_model = SortRowsConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        sort_columns = [column.name for column in self.config.columns]
+        return [MissingColumnsGuard(sort_columns)]
 
     def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
         by = [column.name for column in self.config.columns]

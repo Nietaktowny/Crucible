@@ -3,7 +3,8 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel, model_validator
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard
 
 
 class DateDiffConfig(BaseModel):
@@ -48,6 +49,21 @@ class DateDiffStep(Step):
     name = "Date Difference"
     description = "Calculate difference between two date or datetime values."
     config_model = DateDiffConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        columns_to_check = {}
+        if self.config.start_column:
+            columns_to_check[self.config.start_column] = ["Date", "Datetime"]
+        if self.config.end_column:
+            columns_to_check[self.config.end_column] = ["Date", "Datetime"]
+        
+        guards: list[StepGuardProtocol] = []
+        if columns_to_check:
+            guards.extend([
+                MissingColumnsGuard(list(columns_to_check.keys())),
+                ColumnsTypeGuard(columns_to_check),
+            ])
+        return guards
 
     def execute(
         self,

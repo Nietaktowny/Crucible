@@ -3,16 +3,16 @@ from crucible.errors._errors import (
     ColumnTypeMismatchError
 )
 
-from crucible.errors.guard import (
-    step_guard,
+from crucible.errors.guards import (
     ColumnsTypeGuard,
-    MissingColumnsGuard
+    MissingColumnsGuard,
+    MissingFileGuard
 )
 
 __all__ = [
     ColumnNotFoundError,
     ColumnTypeMismatchError,
-    step_guard,
     ColumnsTypeGuard,
-    MissingColumnsGuard
+    MissingColumnsGuard,
+    MissingFileGuard
 ]

@@ -4,7 +4,8 @@ from uuid import uuid4
 from pydantic import BaseModel
 
 from crucible.io import CsvIOManager
-from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext
+from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingFileGuard
 
 import polars as pl
 
@@ -24,6 +25,9 @@ class ReadCsvStep(Step):
     def __init__(self,  config: StepConfig):
         super().__init__(config)
         self.io_manager = CsvIOManager(self.config.path, self.config.separator)
+
+    def guards(self) -> list[StepGuardProtocol]:
+        return [MissingFileGuard(self.config.path)]
 
     def execute(self, data: FrameContext | None = None, context: StepExecutionContext = None) -> FrameContext:
         df =  self.io_manager.read()

@@ -2,7 +2,7 @@ import polars as pl
 from pydantic import BaseModel
 
 from crucible.declarative import Condition, ConditionBuilder
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
 
 class FilterRowsConfig(BaseModel):
     condition: Condition
@@ -12,6 +12,9 @@ class FilterRowsStep(Step):
     name = "Filter Rows"
     description = "Filter rows based on a declarative condition."
     config_model = FilterRowsConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        return []
 
     def execute(
         self,

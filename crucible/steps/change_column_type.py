@@ -1,6 +1,9 @@
 from typing import Literal
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import (
+    MissingColumnsGuard
+)
 
 import polars as pl
 from pydantic import BaseModel
@@ -50,6 +53,11 @@ class ChangeColumnTypeStep(Step):
     name = "Change Column Type"
     description = "Change the data type of one or more columns."
     config_model = ChangeColumnTypeConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        return [
+            MissingColumnsGuard(self.config.column_types.keys())
+        ]
 
     def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
         result = data.df.with_columns([

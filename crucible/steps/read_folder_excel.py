@@ -4,7 +4,8 @@ import polars as pl
 from pydantic import BaseModel
 
 from crucible.io import ExcelIOManager
-from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext
+from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingFileGuard
 
 
 class ReadFolderExcelConfig(BaseModel):
@@ -28,6 +29,9 @@ class ReadFolderExcelStep(Step):
     name = "Read Excel Folder"
     description = "Read and concatenate Excel files from a folder."
     config_model = ReadFolderExcelConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        return [MissingFileGuard(self.config.path)]
 
     def execute(
         self,

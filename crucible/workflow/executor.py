@@ -12,6 +12,8 @@ class WorkflowExecutor:
             step = step_execution_plan.step            
             try:
                 logger.info(f"Executing step: {step.name}")
+                for guard in step.guards():
+                    guard.check(data)
                 data = step.execute(data=data, context=context)
                 step_execution_plan.status = StepStatus.SUCCESS
             except Exception as e:

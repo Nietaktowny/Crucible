@@ -3,7 +3,8 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard
 
 
 class ParseDateTimeConfig(BaseModel):
@@ -21,6 +22,12 @@ class ParseDateTimeStep(Step):
     name = "Parse Date/Time"
     description = "Parse a text column into date, datetime, or time."
     config_model = ParseDateTimeConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        return [
+            MissingColumnsGuard([self.config.column]),
+            ColumnsTypeGuard({self.config.column: ["String"]}),
+        ]
 
     def execute(
         self,

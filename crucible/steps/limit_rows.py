@@ -1,6 +1,6 @@
 from typing import Literal
 
-from crucible.models import Step, FrameContext
+from crucible.models import Step, FrameContext, StepGuardProtocol
 import polars as pl
 from pydantic import BaseModel
 
@@ -15,6 +15,9 @@ class LimitRowsStep(Step):
     name = "Limit rows"
     description = "Limit rows to first or last n rows"
     config_model = LimitRowsConfig
+    
+    def guards(self) -> list[StepGuardProtocol]:
+        return []
     
     def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
         if self.config.mode == 'head':

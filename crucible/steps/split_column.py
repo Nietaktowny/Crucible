@@ -1,7 +1,8 @@
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard
 
 
 class SplitColumnConfig(BaseModel):
@@ -19,6 +20,12 @@ class SplitColumnStep(Step):
     name = "Split Column"
     description = "Split a text column into multiple columns."
     config_model = SplitColumnConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        return [
+            MissingColumnsGuard([self.config.column]),
+            ColumnsTypeGuard({self.config.column: ["String"]}),
+        ]
 
     def execute(
         self,

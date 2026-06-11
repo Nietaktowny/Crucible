@@ -3,7 +3,8 @@ from typing import Any
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingColumnsGuard
 
 
 class FillNullsConfig(BaseModel):
@@ -16,6 +17,9 @@ class FillNullsStep(Step):
     name = "Fill Nulls"
     description = "Replace null values with a specified value."
     config_model = FillNullsConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        return [MissingColumnsGuard(self.config.columns)]
 
     def execute(
         self,

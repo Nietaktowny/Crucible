@@ -2,7 +2,7 @@ import polars as pl
 from pydantic import BaseModel
 
 from crucible.declarative import Expression, ExpressionBuilder
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
 
 
 class CreateColumnConfig(BaseModel):
@@ -15,6 +15,9 @@ class CreateColumnStep(Step):
     name = "Create Column"
     description = "Create a new column from a declarative expression."
     config_model = CreateColumnConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        return []
 
     def execute(
         self,

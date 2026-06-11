@@ -1,7 +1,8 @@
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingColumnsGuard
 
 class UnpivotConfig(BaseModel):
     on: list[str]
@@ -14,6 +15,10 @@ class UnpivotStep(Step):
     name = "Unpivot"
     description = "Unpivot the data from wide to long format."
     config_model = UnpivotConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        all_columns = self.config.on + self.config.index
+        return [MissingColumnsGuard(all_columns)]
 
     def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
         result = data.df.unpivot(

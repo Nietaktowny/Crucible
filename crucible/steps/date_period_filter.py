@@ -4,7 +4,8 @@ import polars as pl
 from pydantic import BaseModel
 from typing import Literal
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard
 
 
 class DatePeriodFilterConfig(BaseModel):
@@ -22,6 +23,12 @@ class DatePeriodFilterStep(Step):
     name = "Date Period Filter"
     description = "Filter rows belonging to the current year, month or day."
     config_model = DatePeriodFilterConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        return [
+            MissingColumnsGuard([self.config.column]),
+            ColumnsTypeGuard({self.config.column: ["Date", "Datetime"]}),
+        ]
 
     def execute(
         self,

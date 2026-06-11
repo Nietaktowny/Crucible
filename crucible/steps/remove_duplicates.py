@@ -1,6 +1,7 @@
 from typing import Literal
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingColumnsGuard
 
 import polars as pl
 from pydantic import BaseModel
@@ -15,6 +16,11 @@ class RemoveDuplicatesStep(Step):
     name = "Remove Duplicates"
     description = "Remove duplicate rows."
     config_model = RemoveDuplicatesConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        if self.config.columns:
+            return [MissingColumnsGuard(self.config.columns)]
+        return []
 
     def execute(
         self,

@@ -3,7 +3,8 @@ from typing import Any
 import polars as pl
 from pydantic import BaseModel, model_validator
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingColumnsGuard
 
 class ReplaceValuesConfig(BaseModel):
     column: str
@@ -35,6 +36,9 @@ class ReplaceValuesStep(Step):
     name = "Replace Values"
     description = "Replace values in a column."
     config_model = ReplaceValuesConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        return [MissingColumnsGuard([self.config.column])]
 
     def execute(
         self,

@@ -3,7 +3,8 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard
 
 
 class ExtractDateTimePartConfig(BaseModel):
@@ -27,6 +28,12 @@ class ExtractDateTimePartStep(Step):
     name = "Extract Date/Time Part"
     description = "Extract a selected part from a date, datetime, or time column."
     config_model = ExtractDateTimePartConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        return [
+            MissingColumnsGuard([self.config.column]),
+            ColumnsTypeGuard({self.config.column: ["Date", "Datetime", "Time"]}),
+        ]
 
     def execute(
         self,

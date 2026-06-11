@@ -1,7 +1,8 @@
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard
 
 
 class RegexExtractConfig(BaseModel):
@@ -16,6 +17,12 @@ class RegexExtractStep(Step):
     name = "Regex Extract"
     description = "Extract text from a column using a regular expression."
     config_model = RegexExtractConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        return [
+            MissingColumnsGuard([self.config.column]),
+            ColumnsTypeGuard({self.config.column: ["String"]}),
+        ]
 
     def execute(
         self,

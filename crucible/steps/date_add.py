@@ -3,7 +3,8 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard
 
 
 class DateAddConfig(BaseModel):
@@ -26,6 +27,12 @@ class DateAddStep(Step):
     name = "Date Add"
     description = "Add or subtract duration from a date or datetime column."
     config_model = DateAddConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        return [
+            MissingColumnsGuard([self.config.column]),
+            ColumnsTypeGuard({self.config.column: ["Date", "Datetime"]}),
+        ]
 
     def execute(
         self,

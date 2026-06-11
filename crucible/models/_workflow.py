@@ -46,6 +46,9 @@ class FrameContext(BaseModel):
     def collect(self) -> pl.DataFrame:
         return self.df.collect()
 
+class StepGuardProtocol(Protocol):
+    def check(self, data: FrameContext) -> None: ...
+
 class Step(ABC):
     key: ClassVar[str]
     name: ClassVar[str]
@@ -57,6 +60,9 @@ class Step(ABC):
         self.id = str(uuid4())
         self.status = StepStatus.WAITING
         self.config = self.parse_config(config)
+
+    def guards(self) -> list[StepGuardProtocol]:
+        return []
 
     @abstractmethod
     def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
@@ -82,6 +88,8 @@ class MultiSourcesStep(Step):
     
 class StepProtocol(Protocol):
     def execute(self, data: FrameContext) -> FrameContext: ...
+    
+    def guards(self) -> list[StepGuardProtocol]: ...
 
 class Workflow(BaseModel):
     name: str

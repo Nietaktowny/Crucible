@@ -4,7 +4,8 @@ from uuid import uuid4
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext
+from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import MissingFileGuard
 
 
 class ReadFolderCsvConfig(BaseModel):
@@ -25,6 +26,9 @@ class ReadFolderCsvStep(Step):
     name = "Read CSV Folder"
     description = "Read and concatenate CSV files from a folder."
     config_model = ReadFolderCsvConfig
+
+    def guards(self) -> list[StepGuardProtocol]:
+        return [MissingFileGuard(self.config.path)]
 
     def execute(
         self,
