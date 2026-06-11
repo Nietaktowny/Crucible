@@ -4,7 +4,7 @@ from uuid import uuid4
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import StepConfig, Step, StepExecutionContext
+from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext
 
 
 class ReadFolderCsvConfig(BaseModel):
@@ -28,9 +28,9 @@ class ReadFolderCsvStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame = None,
+        data: FrameContext | None = None,
         context: StepExecutionContext = None,
-    ) -> pl.LazyFrame:
+    ) -> FrameContext:
 
         glob_method = (
             self.config.path.rglob
@@ -68,7 +68,9 @@ class ReadFolderCsvStep(Step):
             how="diagonal",
         )
 
-        if context is not None and self.config.context_store:
-            context.extra_inputs[self.config.context_key] = result
+        frame_context = FrameContext(df=result)
 
-        return result if data is None else data
+        if context is not None and self.config.context_store:
+            context.extra_inputs[self.config.context_key] = frame_context
+
+        return frame_context if data is None else data

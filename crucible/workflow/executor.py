@@ -1,13 +1,12 @@
 import logging
 
-from crucible.models import WorkflowExecutionPlan, StepStatus, StepExecutionContext
-
+from crucible.models import WorkflowExecutionPlan, StepStatus, StepExecutionContext, FrameContext
 
 logger = logging.getLogger(__name__)
 
 class WorkflowExecutor:    
     def run(self, workflow_execution_plan: WorkflowExecutionPlan) -> None:
-        data = None
+        data: FrameContext | None = None
         context = StepExecutionContext()
         for step_execution_plan in workflow_execution_plan.steps_execution_plan:
             step = step_execution_plan.step            

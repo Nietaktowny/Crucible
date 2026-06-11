@@ -1,7 +1,7 @@
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 
 class DropNullsConfig(BaseModel):
@@ -16,9 +16,10 @@ class DropNullsStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame,
+        data: FrameContext,
         context: StepExecutionContext = None,
-    ) -> pl.LazyFrame:
-        return data.drop_nulls(
+    ) -> FrameContext:
+        result = data.df.drop_nulls(
             subset=self.config.columns,
         )
+        return FrameContext(df=result, schema=data.schema)

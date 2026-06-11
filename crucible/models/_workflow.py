@@ -29,7 +29,23 @@ class StepConfig(BaseModel):
 
 class StepExecutionContext(BaseModel):
     extra_inputs: dict[str, Any] = Field(default_factory=dict)
+
+class FrameContext(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     
+    df: pl.LazyFrame
+
+    @computed_field
+    @property
+    def schema(self) -> dict[str, str]:
+        return {
+            name: str(dtype)
+            for name, dtype in self.df.collect_schema().items()
+        }
+        
+    def collect(self) -> pl.DataFrame:
+        return self.df.collect()
+
 class Step(ABC):
     key: ClassVar[str]
     name: ClassVar[str]
@@ -43,7 +59,7 @@ class Step(ABC):
         self.config = self.parse_config(config)
 
     @abstractmethod
-    def execute(self, data: pl.LazyFrame, context: StepExecutionContext = None) -> pl.LazyFrame:
+    def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
         pass
     
     def parse_config(self, config: StepConfig) -> BaseModel | None:
@@ -61,11 +77,11 @@ class MultiSourcesStepConfig(StepConfig):
 
 class MultiSourcesStep(Step):
     @abstractmethod
-    def execute(self, data: pl.LazyFrame, context: StepExecutionContext = None) -> pl.LazyFrame:
+    def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
         pass
     
 class StepProtocol(Protocol):
-    def execute(self, data: pl.LazyFrame) -> pl.LazyFrame: ...
+    def execute(self, data: FrameContext) -> FrameContext: ...
 
 class Workflow(BaseModel):
     name: str

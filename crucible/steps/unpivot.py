@@ -1,7 +1,7 @@
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 class UnpivotConfig(BaseModel):
     on: list[str]
@@ -15,10 +15,11 @@ class UnpivotStep(Step):
     description = "Unpivot the data from wide to long format."
     config_model = UnpivotConfig
 
-    def execute(self, data: pl.LazyFrame, context: StepExecutionContext = None) -> pl.LazyFrame:
-        return data.unpivot(
+    def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
+        result = data.df.unpivot(
             on=self.config.on,
             index=self.config.index,
             variable_name=self.config.variable_name,
             value_name=self.config.value_name,
         )
+        return FrameContext(df=result, schema=data.schema)

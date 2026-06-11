@@ -2,7 +2,7 @@ import polars as pl
 from pydantic import BaseModel
 
 from crucible.declarative import Condition, ConditionBuilder
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 class FilterRowsConfig(BaseModel):
     condition: Condition
@@ -15,9 +15,10 @@ class FilterRowsStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame,
+        data: FrameContext,
         context: StepExecutionContext = None,
-    ) -> pl.LazyFrame:
+    ) -> FrameContext:
         predicate = ConditionBuilder().build(self.config.condition)
 
-        return data.filter(predicate)
+        result = data.df.filter(predicate)
+        return FrameContext(df=result, schema=data.schema)

@@ -4,7 +4,7 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel, model_validator
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 
 class DateRangeFilterConfig(BaseModel):
@@ -25,19 +25,20 @@ class DateRangeFilterStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame,
+        data: FrameContext,
         context: StepExecutionContext = None,
-    ) -> pl.LazyFrame:
+    ) -> FrameContext:
         start_value = self._parse_literal(self.config.start)
         end_value = self._parse_literal(self.config.end)
 
-        return data.filter(
+        result = data.df.filter(
             pl.col(self.config.column).is_between(
                 lower_bound=start_value,
                 upper_bound=end_value,
                 closed=self.config.closed,
             )
         )
+        return FrameContext(df=result, schema=data.schema)
 
     def _parse_literal(self, value: str) -> date | datetime:
         match self.config.value_type:

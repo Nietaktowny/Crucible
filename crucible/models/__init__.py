@@ -9,7 +9,8 @@ from crucible.models._workflow import (
     StepProtocol,
     StepExecutionContext,
     MultiSourcesStep,
-    MultiSourcesStepConfig
+    MultiSourcesStepConfig,
+    FrameContext
 )
 
 __all__ = [
@@ -20,5 +21,6 @@ __all__ = [
     WorkflowExecutionPlan,
     Step, StepProtocol,
     MultiSourcesStep, StepExecutionContext,
-    MultiSourcesStepConfig
+    MultiSourcesStepConfig,
+    FrameContext
 ]

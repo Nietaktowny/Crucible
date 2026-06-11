@@ -1,7 +1,7 @@
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 
 class FillDownConfig(BaseModel):
@@ -16,12 +16,13 @@ class FillDownStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame,
+        data: FrameContext,
         context: StepExecutionContext = None,
-    ) -> pl.LazyFrame:
+    ) -> FrameContext:
         expressions = [
             pl.col(column).forward_fill()
             for column in self.config.columns
         ]
 
-        return data.with_columns(expressions)
+        result = data.df.with_columns(expressions)
+        return FrameContext(df=result, schema=data.schema)

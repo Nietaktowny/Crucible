@@ -2,7 +2,7 @@ import polars as pl
 from pydantic import BaseModel
 
 from crucible.declarative import Expression, ExpressionBuilder
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 
 class CreateColumnConfig(BaseModel):
@@ -18,11 +18,12 @@ class CreateColumnStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame,
+        data: FrameContext,
         context: StepExecutionContext = None,
-    ) -> pl.LazyFrame:
+    ) -> FrameContext:
         expression = ExpressionBuilder().build(self.config.expr)
 
-        return data.with_columns(
+        result = data.df.with_columns(
             expression.alias(self.config.name)
         )
+        return FrameContext(df=result, schema=data.schema)

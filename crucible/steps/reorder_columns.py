@@ -2,7 +2,7 @@ import polars as pl
 from pydantic import BaseModel
 
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 class ReorderColumnsConfig(BaseModel):
     columns: list[str]
@@ -12,5 +12,6 @@ class ReorderColumnsStep(Step):
     description = "Reorder columns based on a specified list of column names."
     config_model = ReorderColumnsConfig
 
-    def execute(self, data: pl.LazyFrame, context: StepExecutionContext = None) -> pl.LazyFrame:
-        return data.select(self.config.columns)
+    def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
+        result = data.df.select(self.config.columns)
+        return FrameContext(df=result, schema=data.schema)

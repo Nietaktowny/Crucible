@@ -1,7 +1,7 @@
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 
 class RegexExtractConfig(BaseModel):
@@ -19,10 +19,10 @@ class RegexExtractStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame,
+        data: FrameContext,
         context: StepExecutionContext = None,
-    ) -> pl.LazyFrame:
-        return data.with_columns(
+    ) -> FrameContext:
+        result = data.df.with_columns(
             pl.col(self.config.column)
             .str.extract(
                 pattern=self.config.pattern,
@@ -30,3 +30,4 @@ class RegexExtractStep(Step):
             )
             .alias(self.config.output_column)
         )
+        return FrameContext(df=result, schema=data.schema)

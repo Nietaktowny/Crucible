@@ -3,7 +3,7 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 
 class ExtractDateTimeConfig(BaseModel):
@@ -21,14 +21,15 @@ class ExtractDateTimeStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame,
+        data: FrameContext,
         context: StepExecutionContext = None,
-    ) -> pl.LazyFrame:
+    ) -> FrameContext:
         output_column = self.config.output_column or f"{self.config.column}_{self.config.extract}"
 
         expression = self._build_expression().alias(output_column)
 
-        return data.with_columns(expression)
+        result = data.df.with_columns(expression)
+        return FrameContext(df=result, schema=data.schema)
 
     def _build_expression(self) -> pl.Expr:
         column = pl.col(self.config.column)

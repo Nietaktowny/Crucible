@@ -3,7 +3,7 @@ from typing import Any
 import polars as pl
 from pydantic import BaseModel, model_validator
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 class ReplaceValuesConfig(BaseModel):
     column: str
@@ -38,9 +38,9 @@ class ReplaceValuesStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame,
+        data: FrameContext,
         context: StepExecutionContext = None,
-    ) -> pl.LazyFrame:
+    ) -> FrameContext:
 
         if self.config.mapping:
             expression = (
@@ -56,6 +56,7 @@ class ReplaceValuesStep(Step):
                 )
             )
 
-        return data.with_columns(
+        result = data.df.with_columns(
             expression.alias(self.config.column)
         )
+        return FrameContext(df=result, schema=data.schema)

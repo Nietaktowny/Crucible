@@ -3,7 +3,7 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 
 class DateAddConfig(BaseModel):
@@ -29,9 +29,9 @@ class DateAddStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame,
+        data: FrameContext,
         context: StepExecutionContext = None,
-    ) -> pl.LazyFrame:
+    ) -> FrameContext:
         output_column = self.config.output_column or self.config.column
 
         expression = (
@@ -39,7 +39,8 @@ class DateAddStep(Step):
             + self._build_duration()
         ).alias(output_column)
 
-        return data.with_columns(expression)
+        result = data.df.with_columns(expression)
+        return FrameContext(df=result, schema=data.schema)
 
     def _build_duration(self) -> pl.Expr:
         match self.config.unit:

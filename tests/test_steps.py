@@ -6,7 +6,7 @@ from pydantic import ValidationError
 import polars as pl
 import pandas as pd
 
-from crucible.models import StepConfig, StepExecutionContext
+from crucible.models import FrameContext, StepConfig, StepExecutionContext
 from crucible.steps import (
     SelectColumnsStep,
     ChangeColumnTypeStep,
@@ -53,7 +53,7 @@ def test_change_column_type_casts_single_column_to_int32():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.schema["value"] == pl.Int32
     assert result["value"].to_list() == [1, 2, 3]
@@ -81,7 +81,7 @@ def test_change_column_type_casts_multiple_columns():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.schema["id"] == pl.Int64
     assert result.schema["price"] == pl.Float64
@@ -125,7 +125,7 @@ def test_change_column_type_supports_declared_type_names(
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.schema["value"] == expected_dtype
 
@@ -144,7 +144,7 @@ def test_change_column_type_preserves_unlisted_columns():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.schema["id"] == pl.Int64
     assert result.schema["name"] == pl.String
@@ -161,9 +161,10 @@ def test_change_column_type_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_change_column_type_rejects_unknown_type_name():
@@ -187,7 +188,7 @@ def test_change_column_type_raises_when_column_does_not_exist():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_change_column_type_raises_when_value_cannot_be_cast():
@@ -201,13 +202,13 @@ def test_change_column_type_raises_when_value_cannot_be_cast():
     )
 
     with pytest.raises(pl.exceptions.InvalidOperationError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 def test_concat_vertical_appends_rows_from_extra_inputs():
     data = pl.DataFrame({"id": [1], "name": ["A"]}).lazy()
     extra = pl.DataFrame({"id": [2], "name": ["B"]}).lazy()
 
-    context = StepExecutionContext(extra_inputs={"second": extra})
+    context = StepExecutionContext(extra_inputs={"second": FrameContext(df=extra)})
 
     step = ConcatStep(
         StepConfig(
@@ -216,7 +217,7 @@ def test_concat_vertical_appends_rows_from_extra_inputs():
         )
     )
 
-    result = step.execute(data, context).collect()
+    result = step.execute(FrameContext(df=data), context).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 2],
@@ -228,7 +229,7 @@ def test_concat_uses_vertical_by_default():
     data = pl.DataFrame({"id": [1]}).lazy()
     extra = pl.DataFrame({"id": [2]}).lazy()
 
-    context = StepExecutionContext(extra_inputs={"second": extra})
+    context = StepExecutionContext(extra_inputs={"second": FrameContext(df=extra)})
 
     step = ConcatStep(
         StepConfig(
@@ -237,7 +238,7 @@ def test_concat_uses_vertical_by_default():
         )
     )
 
-    result = step.execute(data, context).collect()
+    result = step.execute(FrameContext(df=data), context).df.collect()
 
     assert result["id"].to_list() == [1, 2]
 
@@ -246,7 +247,7 @@ def test_concat_diagonal_allows_different_schemas():
     data = pl.DataFrame({"id": [1], "name": ["A"]}).lazy()
     extra = pl.DataFrame({"id": [2], "score": [100]}).lazy()
 
-    context = StepExecutionContext(extra_inputs={"second": extra})
+    context = StepExecutionContext(extra_inputs={"second": FrameContext(df=extra)})
 
     step = ConcatStep(
         StepConfig(
@@ -255,7 +256,7 @@ def test_concat_diagonal_allows_different_schemas():
         )
     )
 
-    result = step.execute(data, context).collect()
+    result = step.execute(FrameContext(df=data), context).df.collect()
 
     assert result.columns == ["id", "name", "score"]
     assert result.to_dict(as_series=False) == {
@@ -269,7 +270,7 @@ def test_concat_horizontal_appends_columns():
     data = pl.DataFrame({"id": [1, 2]}).lazy()
     extra = pl.DataFrame({"name": ["A", "B"]}).lazy()
 
-    context = StepExecutionContext(extra_inputs={"second": extra})
+    context = StepExecutionContext(extra_inputs={"second": FrameContext(df=extra)})
 
     step = ConcatStep(
         StepConfig(
@@ -278,7 +279,7 @@ def test_concat_horizontal_appends_columns():
         )
     )
 
-    result = step.execute(data, context).collect()
+    result = step.execute(FrameContext(df=data), context).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 2],
@@ -290,7 +291,7 @@ def test_concat_clears_context_extra_inputs_after_execution():
     data = pl.DataFrame({"id": [1]}).lazy()
     extra = pl.DataFrame({"id": [2]}).lazy()
 
-    context = StepExecutionContext(extra_inputs={"second": extra})
+    context = StepExecutionContext(extra_inputs={"second": FrameContext(df=extra)})
 
     step = ConcatStep(
         StepConfig(
@@ -299,7 +300,7 @@ def test_concat_clears_context_extra_inputs_after_execution():
         )
     )
 
-    step.execute(data, context)
+    step.execute(FrameContext(df=data), context)
 
     assert context.extra_inputs == {}
 
@@ -308,7 +309,7 @@ def test_concat_returns_lazyframe():
     data = pl.DataFrame({"id": [1]}).lazy()
     extra = pl.DataFrame({"id": [2]}).lazy()
 
-    context = StepExecutionContext(extra_inputs={"second": extra})
+    context = StepExecutionContext(extra_inputs={"second": FrameContext(df=extra)})
 
     step = ConcatStep(
         StepConfig(
@@ -317,9 +318,10 @@ def test_concat_returns_lazyframe():
         )
     )
 
-    result = step.execute(data, context)
+    result = step.execute(FrameContext(df=data), context)
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_concat_rejects_invalid_how_value():
@@ -336,7 +338,7 @@ def test_concat_vertical_raises_for_different_schemas():
     data = pl.DataFrame({"id": [1]}).lazy()
     extra = pl.DataFrame({"name": ["A"]}).lazy()
 
-    context = StepExecutionContext(extra_inputs={"second": extra})
+    context = StepExecutionContext(extra_inputs={"second": FrameContext(df=extra)})
 
     step = ConcatStep(
         StepConfig(
@@ -346,7 +348,7 @@ def test_concat_vertical_raises_for_different_schemas():
     )
 
     with pytest.raises(pl.exceptions.InvalidOperationError):
-        step.execute(data, context).collect()
+        step.execute(FrameContext(df=data), context).df.collect()
 
 
 def test_concat_fails_without_context():
@@ -360,7 +362,7 @@ def test_concat_fails_without_context():
     )
 
     with pytest.raises(AttributeError):
-        step.execute(data, None)
+        step.execute(FrameContext(df=data), None)
         
 def test_create_column_creates_literal_column():
     df = pl.DataFrame({"id": [1, 2]}).lazy()
@@ -375,7 +377,7 @@ def test_create_column_creates_literal_column():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 2],
@@ -396,7 +398,7 @@ def test_create_column_creates_column_from_existing_column_expression():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "value": [10, 20],
@@ -423,7 +425,7 @@ def test_create_column_creates_column_from_add_operation():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "a": [10, 20],
@@ -445,7 +447,7 @@ def test_create_column_can_overwrite_existing_column():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "value": [999, 999],
@@ -465,9 +467,10 @@ def test_create_column_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_create_column_rejects_missing_name():
@@ -524,7 +527,7 @@ def test_create_column_raises_when_referenced_column_does_not_exist():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_date_add_adds_days_to_date_column():
     df = pl.DataFrame(
@@ -544,7 +547,7 @@ def test_date_add_adds_days_to_date_column():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["date"].to_list() == [date(2026, 6, 6)]
 
@@ -567,7 +570,7 @@ def test_date_add_subtracts_days_using_negative_value():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["date"].to_list() == [date(2026, 6, 5)]
 
@@ -591,7 +594,7 @@ def test_date_add_writes_to_output_column():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.columns == ["date", "date_plus_one"]
     assert result["date"].to_list() == [date(2026, 6, 1)]
@@ -625,7 +628,7 @@ def test_date_add_supports_all_datetime_units(unit, value, expected):
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["dt"].to_list() == [expected]
 
@@ -648,7 +651,7 @@ def test_date_add_overwrites_source_column_when_output_column_not_specified():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.columns == ["date"]
     assert result["date"].to_list() == [date(2026, 6, 2)]
@@ -671,9 +674,10 @@ def test_date_add_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_date_add_rejects_invalid_unit():
@@ -708,7 +712,7 @@ def test_date_add_raises_for_missing_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_date_diff_between_two_datetime_columns_in_days():
     df = pl.DataFrame(
@@ -730,7 +734,7 @@ def test_date_diff_between_two_datetime_columns_in_days():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["diff_days"].to_list() == [5]
 
@@ -765,7 +769,7 @@ def test_date_diff_supports_all_units(unit, expected):
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["diff"].to_list() == [expected]
 
@@ -789,7 +793,7 @@ def test_date_diff_between_start_value_and_end_column():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["diff_days"].to_list() == [9]
 
@@ -813,7 +817,7 @@ def test_date_diff_between_start_column_and_end_value():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["diff_days"].to_list() == [9]
 
@@ -833,7 +837,7 @@ def test_date_diff_between_two_literal_values():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1],
@@ -861,7 +865,7 @@ def test_date_diff_can_return_negative_difference():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["diff_days"].to_list() == [-9]
 
@@ -885,9 +889,10 @@ def test_date_diff_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_date_diff_rejects_missing_start():
@@ -980,7 +985,7 @@ def test_date_diff_raises_for_missing_start_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
     
 def test_date_period_filter_current_year():
     today = date.today()
@@ -1006,7 +1011,7 @@ def test_date_period_filter_current_year():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["value"].to_list() == [1, 2]
 
@@ -1042,7 +1047,7 @@ def test_date_period_filter_current_month():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["value"].to_list() == [1, 2]
 
@@ -1072,7 +1077,7 @@ def test_date_period_filter_current_day():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "date": [today],
@@ -1095,9 +1100,10 @@ def test_date_period_filter_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_date_period_filter_rejects_invalid_period():
@@ -1153,7 +1159,7 @@ def test_date_period_filter_raises_for_missing_dataframe_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_date_period_filter_raises_for_non_temporal_column():
@@ -1170,7 +1176,7 @@ def test_date_period_filter_raises_for_non_temporal_column():
     )
 
     with pytest.raises(pl.exceptions.InvalidOperationError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_date_range_filter_filters_dates_inclusive_by_default():
     df = pl.DataFrame(
@@ -1195,7 +1201,7 @@ def test_date_range_filter_filters_dates_inclusive_by_default():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["value"].to_list() == [1, 2, 3]
 
@@ -1224,7 +1230,7 @@ def test_date_range_filter_closed_none_excludes_boundaries():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["value"].to_list() == [2]
 
@@ -1253,7 +1259,7 @@ def test_date_range_filter_closed_left():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["value"].to_list() == [1, 2]
 
@@ -1282,7 +1288,7 @@ def test_date_range_filter_closed_right():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["value"].to_list() == [2, 3]
 
@@ -1311,7 +1317,7 @@ def test_date_range_filter_supports_datetime_values():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["value"].to_list() == [1, 2, 3]
 
@@ -1334,7 +1340,7 @@ def test_date_range_filter_returns_empty_when_nothing_matches():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.height == 0
 
@@ -1357,9 +1363,10 @@ def test_date_range_filter_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_date_range_filter_rejects_invalid_value_type():
@@ -1411,7 +1418,7 @@ def test_date_range_filter_raises_for_missing_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_date_range_filter_raises_for_invalid_date_literal():
@@ -1433,7 +1440,7 @@ def test_date_range_filter_raises_for_invalid_date_literal():
     )
 
     with pytest.raises(ValueError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_date_range_filter_raises_for_invalid_datetime_literal():
@@ -1456,7 +1463,7 @@ def test_date_range_filter_raises_for_invalid_datetime_literal():
     )
 
     with pytest.raises(ValueError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_drop_nulls_removes_rows_with_any_nulls_by_default():
     df = pl.DataFrame(
@@ -1474,7 +1481,7 @@ def test_drop_nulls_removes_rows_with_any_nulls_by_default():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1],
@@ -1501,7 +1508,7 @@ def test_drop_nulls_only_checks_specified_column():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 3],
@@ -1527,7 +1534,7 @@ def test_drop_nulls_multiple_columns_subset():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "a": [1],
@@ -1550,7 +1557,7 @@ def test_drop_nulls_keeps_rows_when_no_nulls_exist():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 2],
@@ -1573,7 +1580,7 @@ def test_drop_nulls_returns_empty_dataframe_when_all_rows_contain_nulls():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.height == 0
 
@@ -1592,9 +1599,10 @@ def test_drop_nulls_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_drop_nulls_raises_for_missing_column():
@@ -1614,7 +1622,7 @@ def test_drop_nulls_raises_for_missing_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_drop_nulls_accepts_explicit_none_columns():
@@ -1634,7 +1642,7 @@ def test_drop_nulls_accepts_explicit_none_columns():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["id"].to_list() == [1]
     
@@ -1668,7 +1676,7 @@ def test_extract_datetime_part_extracts_supported_parts(part, expected):
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result[f"dt_{part}"].to_list() == [expected]
 
@@ -1691,7 +1699,7 @@ def test_extract_datetime_part_uses_custom_output_column():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.columns == ["dt", "rok"]
     assert result["rok"].to_list() == [2026]
@@ -1714,9 +1722,10 @@ def test_extract_datetime_part_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_extract_datetime_part_rejects_invalid_part():
@@ -1750,7 +1759,7 @@ def test_extract_datetime_part_raises_for_missing_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_extract_datetime_part_raises_for_non_temporal_column():
@@ -1771,7 +1780,7 @@ def test_extract_datetime_part_raises_for_non_temporal_column():
     )
 
     with pytest.raises(pl.exceptions.InvalidOperationError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_extract_datetime_extracts_date():
     df = pl.DataFrame(
@@ -1790,7 +1799,7 @@ def test_extract_datetime_extracts_date():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["dt_date"].to_list() == [date(2026, 6, 9)]
 
@@ -1812,7 +1821,7 @@ def test_extract_datetime_extracts_time():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["dt_time"].to_list() == [time(13, 45, 30)]
 
@@ -1835,7 +1844,7 @@ def test_extract_datetime_uses_custom_output_column():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.columns == ["dt", "measurement_date"]
     assert result["measurement_date"].to_list() == [
@@ -1860,9 +1869,10 @@ def test_extract_datetime_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_extract_datetime_rejects_invalid_extract_value():
@@ -1896,7 +1906,7 @@ def test_extract_datetime_raises_for_missing_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_extract_datetime_raises_for_non_temporal_column():
@@ -1917,7 +1927,7 @@ def test_extract_datetime_raises_for_non_temporal_column():
     )
 
     with pytest.raises(pl.exceptions.ComputeError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_fill_down_fills_nulls_with_previous_non_null_value():
     df = pl.DataFrame(
@@ -1935,7 +1945,7 @@ def test_fill_down_fills_nulls_with_previous_non_null_value():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["value"].to_list() == [1, 1, 1, 4, 4]
 
@@ -1957,7 +1967,7 @@ def test_fill_down_fills_multiple_columns():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "a": [1, 1, 3, 3],
@@ -1981,7 +1991,7 @@ def test_fill_down_preserves_leading_nulls():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["value"].to_list() == [None, None, 3, 3]
 
@@ -2003,7 +2013,7 @@ def test_fill_down_does_not_modify_unlisted_columns():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "a": [1, 1],
@@ -2023,9 +2033,10 @@ def test_fill_down_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_fill_down_rejects_missing_columns_parameter():
@@ -2051,7 +2062,7 @@ def test_fill_down_raises_for_missing_dataframe_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_fill_nulls_replaces_nulls_in_single_column():
     df = pl.DataFrame(
@@ -2070,7 +2081,7 @@ def test_fill_nulls_replaces_nulls_in_single_column():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["value"].to_list() == [1, 0, 3]
 
@@ -2093,7 +2104,7 @@ def test_fill_nulls_replaces_nulls_in_multiple_columns():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "a": [1, 0, 3],
@@ -2118,7 +2129,7 @@ def test_fill_nulls_supports_string_fill_value():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["name"].to_list() == ["A", "unknown", "C"]
 
@@ -2141,7 +2152,7 @@ def test_fill_nulls_does_not_modify_unlisted_columns():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "a": [1, 0],
@@ -2162,9 +2173,10 @@ def test_fill_nulls_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_fill_nulls_rejects_missing_columns_parameter():
@@ -2205,7 +2217,7 @@ def test_fill_nulls_raises_for_missing_dataframe_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_fill_nulls_can_promote_column_type():
@@ -2225,7 +2237,7 @@ def test_fill_nulls_can_promote_column_type():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["value"].to_list() == ["1", "not-a-number"]
         
@@ -2253,7 +2265,7 @@ def test_group_by_sums_values_by_single_column():
         )
     )
 
-    result = step.execute(df).collect().sort("category")
+    result = step.execute(FrameContext(df=df)).df.collect().sort("category")
 
     assert result.to_dict(as_series=False) == {
         "category": ["A", "B"],
@@ -2285,7 +2297,7 @@ def test_group_by_supports_multiple_aggregations():
         )
     )
 
-    result = step.execute(df).collect().sort("category")
+    result = step.execute(FrameContext(df=df)).df.collect().sort("category")
 
     assert result.to_dict(as_series=False) == {
         "category": ["A", "B"],
@@ -2320,7 +2332,7 @@ def test_group_by_supports_median():
         )
     )
 
-    result = step.execute(df).collect().sort("category")
+    result = step.execute(FrameContext(df=df)).df.collect().sort("category")
 
     assert result.to_dict(as_series=False) == {
         "category": ["A", "B"],
@@ -2352,7 +2364,7 @@ def test_group_by_supports_count():
         )
     )
 
-    result = step.execute(df).collect().sort("category")
+    result = step.execute(FrameContext(df=df)).df.collect().sort("category")
 
     assert result.to_dict(as_series=False) == {
         "category": ["A", "B"],
@@ -2384,7 +2396,7 @@ def test_group_by_supports_len():
         )
     )
 
-    result = step.execute(df).collect().sort("category")
+    result = step.execute(FrameContext(df=df)).df.collect().sort("category")
 
     assert result.to_dict(as_series=False) == {
         "category": ["A", "B"],
@@ -2413,7 +2425,7 @@ def test_group_by_supports_first_and_last():
         )
     )
 
-    result = step.execute(df).collect().sort("category")
+    result = step.execute(FrameContext(df=df)).df.collect().sort("category")
 
     assert result.to_dict(as_series=False) == {
         "category": ["A", "B"],
@@ -2445,7 +2457,7 @@ def test_group_by_without_alias_uses_source_column_name():
         )
     )
 
-    result = step.execute(df).collect().sort("category")
+    result = step.execute(FrameContext(df=df)).df.collect().sort("category")
 
     assert result.to_dict(as_series=False) == {
         "category": ["A", "B"],
@@ -2478,7 +2490,7 @@ def test_group_by_groups_by_multiple_columns():
         )
     )
 
-    result = step.execute(df).collect().sort(["country", "category"])
+    result = step.execute(FrameContext(df=df)).df.collect().sort(["country", "category"])
 
     assert result.to_dict(as_series=False) == {
         "country": ["DE", "PL", "PL"],
@@ -2511,9 +2523,10 @@ def test_group_by_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_group_by_rejects_invalid_aggregation_function():
@@ -2626,7 +2639,7 @@ def test_group_by_raises_for_missing_group_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_group_by_raises_for_missing_aggregation_column():
@@ -2654,7 +2667,7 @@ def test_group_by_raises_for_missing_aggregation_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 def test_filter_rows_filters_equal_condition():
     df = pl.DataFrame(
@@ -2677,7 +2690,7 @@ def test_filter_rows_filters_equal_condition():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "name": ["A", "A"],
@@ -2711,7 +2724,7 @@ def test_filter_rows_supports_basic_comparison_operators(operator, expected_valu
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["value"].to_list() == expected_values
 
@@ -2744,7 +2757,7 @@ def test_filter_rows_supports_string_operators(operator, expected_names):
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["name"].to_list() == expected_names
 
@@ -2769,7 +2782,7 @@ def test_filter_rows_supports_is_null():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["id"].to_list() == [2, 3]
 
@@ -2794,7 +2807,7 @@ def test_filter_rows_supports_is_not_null():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["id"].to_list() == [1]
 
@@ -2819,7 +2832,7 @@ def test_filter_rows_supports_is_in():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["name"].to_list() == ["A", "C"]
 
@@ -2855,7 +2868,7 @@ def test_filter_rows_supports_and_condition():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "name": ["A"],
@@ -2894,7 +2907,7 @@ def test_filter_rows_supports_or_condition():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "name": ["A", "C"],
@@ -2925,7 +2938,7 @@ def test_filter_rows_supports_not_condition():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["name"].to_list() == ["B", "C"]
 
@@ -2957,7 +2970,7 @@ def test_filter_rows_supports_expression_on_left_side():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "a": [3],
@@ -2981,9 +2994,10 @@ def test_filter_rows_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_filter_rows_rejects_missing_condition():
@@ -3028,7 +3042,7 @@ def test_filter_rows_raises_when_operator_requires_right_expression():
     )
 
     with pytest.raises(ValueError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_filter_rows_raises_for_empty_and_condition():
@@ -3047,7 +3061,7 @@ def test_filter_rows_raises_for_empty_and_condition():
     )
 
     with pytest.raises(ValueError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_filter_rows_raises_for_empty_or_condition():
@@ -3066,7 +3080,7 @@ def test_filter_rows_raises_for_empty_or_condition():
     )
 
     with pytest.raises(ValueError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_filter_rows_raises_for_missing_dataframe_column():
@@ -3086,7 +3100,7 @@ def test_filter_rows_raises_for_missing_dataframe_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_join_left_joins_right_input_from_context():
     left = pl.DataFrame(
@@ -3103,7 +3117,7 @@ def test_join_left_joins_right_input_from_context():
         }
     ).lazy()
 
-    context = StepExecutionContext(extra_inputs={"right": right})
+    context = StepExecutionContext(extra_inputs={"right": FrameContext(df=right)})
 
     step = JoinStep(
         StepConfig(
@@ -3116,7 +3130,7 @@ def test_join_left_joins_right_input_from_context():
         )
     )
 
-    result = step.execute(left, context).collect().sort("id")
+    result = step.execute(FrameContext(df=left), context).df.collect().sort("id")
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 2, 3],
@@ -3129,7 +3143,7 @@ def test_join_uses_left_join_by_default():
     left = pl.DataFrame({"id": [1, 2]}).lazy()
     right = pl.DataFrame({"id": [1], "score": [100]}).lazy()
 
-    context = StepExecutionContext(extra_inputs={"right": right})
+    context = StepExecutionContext(extra_inputs={"right": FrameContext(df=right)})
 
     step = JoinStep(
         StepConfig(
@@ -3141,7 +3155,7 @@ def test_join_uses_left_join_by_default():
         )
     )
 
-    result = step.execute(left, context).collect().sort("id")
+    result = step.execute(FrameContext(df=left), context).df.collect().sort("id")
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 2],
@@ -3164,7 +3178,7 @@ def test_join_inner_keeps_only_matching_rows():
         }
     ).lazy()
 
-    context = StepExecutionContext(extra_inputs={"right": right})
+    context = StepExecutionContext(extra_inputs={"right": FrameContext(df=right)})
 
     step = JoinStep(
         StepConfig(
@@ -3177,7 +3191,7 @@ def test_join_inner_keeps_only_matching_rows():
         )
     )
 
-    result = step.execute(left, context).collect().sort("id")
+    result = step.execute(FrameContext(df=left), context).df.collect().sort("id")
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 3],
@@ -3201,7 +3215,7 @@ def test_join_right_keeps_all_right_rows():
         }
     ).lazy()
 
-    context = StepExecutionContext(extra_inputs={"right": right})
+    context = StepExecutionContext(extra_inputs={"right": FrameContext(df=right)})
 
     step = JoinStep(
         StepConfig(
@@ -3214,7 +3228,7 @@ def test_join_right_keeps_all_right_rows():
         )
     )
 
-    result = step.execute(left, context).collect().sort("id")
+    result = step.execute(FrameContext(df=left), context).df.collect().sort("id")
 
     assert result.to_dict(as_series=False) == {
         "name": ["A", None],
@@ -3238,7 +3252,7 @@ def test_join_full_keeps_rows_from_both_sides():
         }
     ).lazy()
 
-    context = StepExecutionContext(extra_inputs={"right": right})
+    context = StepExecutionContext(extra_inputs={"right": FrameContext(df=right)})
 
     step = JoinStep(
         StepConfig(
@@ -3251,7 +3265,7 @@ def test_join_full_keeps_rows_from_both_sides():
         )
     )
 
-    result = step.execute(left, context).collect().sort("id", nulls_last=True)
+    result = step.execute(FrameContext(df=left), context).df.collect().sort("id", nulls_last=True)
 
     assert result["id"].to_list() == [1, 2, None]
     assert result["id_right"].to_list() == [1, None, 3]
@@ -3273,7 +3287,7 @@ def test_join_anti_keeps_only_left_rows_without_match():
         }
     ).lazy()
 
-    context = StepExecutionContext(extra_inputs={"right": right})
+    context = StepExecutionContext(extra_inputs={"right": FrameContext(df=right)})
 
     step = JoinStep(
         StepConfig(
@@ -3286,7 +3300,7 @@ def test_join_anti_keeps_only_left_rows_without_match():
         )
     )
 
-    result = step.execute(left, context).collect()
+    result = step.execute(FrameContext(df=left), context).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [2],
@@ -3307,7 +3321,7 @@ def test_join_cross_creates_cartesian_product():
         }
     ).lazy()
 
-    context = StepExecutionContext(extra_inputs={"right": right})
+    context = StepExecutionContext(extra_inputs={"right": FrameContext(df=right)})
 
     step = JoinStep(
         StepConfig(
@@ -3320,7 +3334,7 @@ def test_join_cross_creates_cartesian_product():
         )
     )
 
-    result = step.execute(left, context).collect().sort(["left_id", "right_id"])
+    result = step.execute(FrameContext(df=left), context).df.collect().sort(["left_id", "right_id"])
 
     assert result.to_dict(as_series=False) == {
         "left_id": [1, 1, 2, 2],
@@ -3343,7 +3357,7 @@ def test_join_supports_different_key_column_names():
         }
     ).lazy()
 
-    context = StepExecutionContext(extra_inputs={"right": right})
+    context = StepExecutionContext(extra_inputs={"right": FrameContext(df=right)})
 
     step = JoinStep(
         StepConfig(
@@ -3356,7 +3370,7 @@ def test_join_supports_different_key_column_names():
         )
     )
 
-    result = step.execute(left, context).collect().sort("customer_id")
+    result = step.execute(FrameContext(df=left), context).df.collect().sort("customer_id")
 
     assert result.to_dict(as_series=False) == {
         "customer_id": [1, 2],
@@ -3382,7 +3396,7 @@ def test_join_supports_multiple_key_columns():
         }
     ).lazy()
 
-    context = StepExecutionContext(extra_inputs={"right": right})
+    context = StepExecutionContext(extra_inputs={"right": FrameContext(df=right)})
 
     step = JoinStep(
         StepConfig(
@@ -3395,7 +3409,7 @@ def test_join_supports_multiple_key_columns():
         )
     )
 
-    result = step.execute(left, context).collect().sort(["country", "id"])
+    result = step.execute(FrameContext(df=left), context).df.collect().sort(["country", "id"])
 
     assert result.to_dict(as_series=False) == {
         "country": ["DE", "PL", "PL"],
@@ -3409,7 +3423,7 @@ def test_join_removes_right_input_from_context_after_execution():
     left = pl.DataFrame({"id": [1]}).lazy()
     right = pl.DataFrame({"id": [1], "score": [100]}).lazy()
 
-    context = StepExecutionContext(extra_inputs={"right": right})
+    context = StepExecutionContext(extra_inputs={"right": FrameContext(df=right)})
 
     step = JoinStep(
         StepConfig(
@@ -3421,7 +3435,7 @@ def test_join_removes_right_input_from_context_after_execution():
         )
     )
 
-    step.execute(left, context)
+    step.execute(FrameContext(df=left), context)
 
     assert context.extra_inputs == {}
 
@@ -3430,7 +3444,7 @@ def test_join_returns_lazyframe():
     left = pl.DataFrame({"id": [1]}).lazy()
     right = pl.DataFrame({"id": [1], "score": [100]}).lazy()
 
-    context = StepExecutionContext(extra_inputs={"right": right})
+    context = StepExecutionContext(extra_inputs={"right": FrameContext(df=right)})
 
     step = JoinStep(
         StepConfig(
@@ -3442,9 +3456,10 @@ def test_join_returns_lazyframe():
         )
     )
 
-    result = step.execute(left, context)
+    result = step.execute(FrameContext(df=left), context)
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_join_rejects_invalid_how_value():
@@ -3499,7 +3514,7 @@ def test_join_fails_without_context():
     )
 
     with pytest.raises(ValueError):
-        step.execute(left, None)
+        step.execute(FrameContext(df=left), None)
 
 
 def test_join_fails_when_context_has_no_right_input():
@@ -3518,14 +3533,14 @@ def test_join_fails_when_context_has_no_right_input():
     )
 
     with pytest.raises(ValueError):
-        step.execute(left, context)
+        step.execute(FrameContext(df=left), context)
 
 
 def test_join_raises_for_missing_left_column():
     left = pl.DataFrame({"id": [1]}).lazy()
     right = pl.DataFrame({"id": [1]}).lazy()
 
-    context = StepExecutionContext(extra_inputs={"right": right})
+    context = StepExecutionContext(extra_inputs={"right": FrameContext(df=right)})
 
     step = JoinStep(
         StepConfig(
@@ -3538,14 +3553,14 @@ def test_join_raises_for_missing_left_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(left, context).collect()
+        step.execute(FrameContext(df=left), context).collect()
 
 
 def test_join_raises_for_missing_right_column():
     left = pl.DataFrame({"id": [1]}).lazy()
     right = pl.DataFrame({"id": [1]}).lazy()
 
-    context = StepExecutionContext(extra_inputs={"right": right})
+    context = StepExecutionContext(extra_inputs={"right": FrameContext(df=right)})
 
     step = JoinStep(
         StepConfig(
@@ -3558,7 +3573,7 @@ def test_join_raises_for_missing_right_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(left, context).collect()
+        step.execute(FrameContext(df=left), context).collect()
         
 def test_limit_rows_head_keeps_first_n_rows():
     df = pl.DataFrame(
@@ -3578,7 +3593,7 @@ def test_limit_rows_head_keeps_first_n_rows():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 2],
@@ -3604,7 +3619,7 @@ def test_limit_rows_tail_keeps_last_n_rows():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [3, 4],
@@ -3629,7 +3644,7 @@ def test_limit_rows_limit_larger_than_dataframe_keeps_all_rows():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["id"].to_list() == [1, 2]
 
@@ -3651,7 +3666,7 @@ def test_limit_rows_zero_returns_empty_dataframe():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.height == 0
 
@@ -3673,9 +3688,10 @@ def test_limit_rows_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_limit_rows_rejects_invalid_mode():
@@ -3731,7 +3747,7 @@ def test_parse_datetime_parses_date_column_in_place():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.schema["date_text"] == pl.Date
     assert result["date_text"].to_list() == [
@@ -3757,7 +3773,7 @@ def test_parse_datetime_parses_datetime_column_in_place():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.schema["dt_text"] == pl.Datetime
     assert result["dt_text"].to_list() == [
@@ -3782,7 +3798,7 @@ def test_parse_datetime_parses_time_column_in_place():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.schema["time_text"] == pl.Time
     assert result["time_text"].to_list() == [
@@ -3808,7 +3824,7 @@ def test_parse_datetime_uses_custom_format():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.schema["date_text"] == pl.Date
     assert result["date_text"].to_list() == [
@@ -3834,7 +3850,7 @@ def test_parse_datetime_writes_to_output_column():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.columns == ["date_text", "parsed_date"]
     assert result.schema["date_text"] == pl.String
@@ -3863,7 +3879,7 @@ def test_parse_datetime_strict_false_converts_invalid_values_to_null():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["date_text"].to_list() == [
         date(2026, 6, 9),
@@ -3890,7 +3906,7 @@ def test_parse_datetime_strict_true_raises_for_invalid_value():
     )
 
     with pytest.raises(pl.exceptions.InvalidOperationError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_parse_datetime_returns_lazyframe():
@@ -3910,9 +3926,10 @@ def test_parse_datetime_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_parse_datetime_rejects_invalid_target_type():
@@ -3970,7 +3987,7 @@ def test_parse_datetime_raises_for_missing_dataframe_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_pivot_pivots_single_value_column():
     df = pl.DataFrame(
@@ -3993,7 +4010,7 @@ def test_pivot_pivots_single_value_column():
         )
     )
 
-    result = step.execute(df).collect().sort("id")
+    result = step.execute(FrameContext(df=df)).df.collect().sort("id")
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 2],
@@ -4022,7 +4039,7 @@ def test_pivot_uses_first_aggregation_by_default():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1],
@@ -4052,7 +4069,7 @@ def test_pivot_sums_duplicate_combinations():
         )
     )
 
-    result = step.execute(df).collect().sort("id")
+    result = step.execute(FrameContext(df=df)).df.collect().sort("id")
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 2],
@@ -4083,7 +4100,7 @@ def test_pivot_supports_multiple_index_columns():
         )
     )
 
-    result = step.execute(df).collect().sort(["country", "id"])
+    result = step.execute(FrameContext(df=df)).df.collect().sort(["country", "id"])
 
     assert result.to_dict(as_series=False) == {
         "country": ["DE", "PL"],
@@ -4115,7 +4132,7 @@ def test_pivot_supports_multiple_value_columns():
         )
     )
 
-    result = step.execute(df).collect().sort("id")
+    result = step.execute(FrameContext(df=df)).df.collect().sort("id")
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 2],
@@ -4163,7 +4180,7 @@ def test_pivot_supports_declared_aggregate_functions(
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["sales"].to_list() == [expected_sales]
 
@@ -4188,9 +4205,10 @@ def test_pivot_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_pivot_rejects_invalid_aggregate_function():
@@ -4268,7 +4286,7 @@ def test_pivot_raises_for_missing_on_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_pivot_raises_for_missing_index_column():
@@ -4292,7 +4310,7 @@ def test_pivot_raises_for_missing_index_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_pivot_raises_for_missing_values_column():
@@ -4316,7 +4334,7 @@ def test_pivot_raises_for_missing_values_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_read_csv_reads_file_with_default_separator(tmp_path):
     csv_path = tmp_path / "input.csv"
@@ -4334,7 +4352,7 @@ def test_read_csv_reads_file_with_default_separator(tmp_path):
         )
     )
 
-    result = step.execute().collect()
+    result = step.execute().df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": ["1", "2"],
@@ -4359,7 +4377,7 @@ def test_read_csv_reads_file_with_custom_separator(tmp_path):
         )
     )
 
-    result = step.execute().collect()
+    result = step.execute().df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": ["1", "2"],
@@ -4385,7 +4403,8 @@ def test_read_csv_returns_lazyframe(tmp_path):
 
     result = step.execute()
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_read_csv_stores_result_in_context_when_enabled(tmp_path):
@@ -4411,12 +4430,12 @@ def test_read_csv_stores_result_in_context_when_enabled(tmp_path):
     result = step.execute(context=context)
 
     assert "csv_input" in context.extra_inputs
-    assert isinstance(context.extra_inputs["csv_input"], pl.LazyFrame)
-    assert context.extra_inputs["csv_input"].collect().to_dict(as_series=False) == {
+    assert isinstance(context.extra_inputs["csv_input"], FrameContext)
+    assert context.extra_inputs["csv_input"].df.collect().to_dict(as_series=False) == {
         "id": ["1"],
         "name": ["A"],
     }
-    assert result.collect().to_dict(as_series=False) == {
+    assert result.df.collect().to_dict(as_series=False) == {
         "id": ["1"],
         "name": ["A"],
     }
@@ -4467,7 +4486,7 @@ def test_read_csv_returns_existing_data_when_data_is_provided(tmp_path):
         )
     )
 
-    result = step.execute(data=existing_data).collect()
+    result = step.execute(data=FrameContext(df=existing_data)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "existing": [100],
@@ -4500,12 +4519,12 @@ def test_read_csv_still_reads_and_stores_when_existing_data_is_provided(tmp_path
         )
     )
 
-    result = step.execute(data=existing_data, context=context).collect()
+    result = step.execute(data=FrameContext(df=existing_data), context=context).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "existing": [100],
     }
-    assert context.extra_inputs["csv_input"].collect().to_dict(as_series=False) == {
+    assert context.extra_inputs["csv_input"].df.collect().to_dict(as_series=False) == {
         "id": ["1"],
         "name": ["A"],
     }
@@ -4534,7 +4553,7 @@ def test_read_csv_raises_for_missing_file(tmp_path):
     )
 
     with pytest.raises(FileNotFoundError):
-        step.execute().collect()
+        step.execute().df.collect()
         
 def test_read_excel_reads_default_sheet(tmp_path):
     excel_path = tmp_path / "input.xlsx"
@@ -4555,7 +4574,7 @@ def test_read_excel_reads_default_sheet(tmp_path):
         )
     )
 
-    result = step.execute().collect()
+    result = step.execute().df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 2],
@@ -4591,7 +4610,7 @@ def test_read_excel_reads_selected_sheet(tmp_path):
         )
     )
 
-    result = step.execute().collect()
+    result = step.execute().df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [2],
@@ -4619,7 +4638,8 @@ def test_read_excel_returns_lazyframe(tmp_path):
 
     result = step.execute()
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_read_excel_stores_result_in_context_when_enabled(tmp_path):
@@ -4648,12 +4668,12 @@ def test_read_excel_stores_result_in_context_when_enabled(tmp_path):
     result = step.execute(context=context)
 
     assert "excel_input" in context.extra_inputs
-    assert isinstance(context.extra_inputs["excel_input"], pl.LazyFrame)
-    assert context.extra_inputs["excel_input"].collect().to_dict(as_series=False) == {
+    assert isinstance(context.extra_inputs["excel_input"], FrameContext)
+    assert context.extra_inputs["excel_input"].df.collect().to_dict(as_series=False) == {
         "id": [1],
         "name": ["A"],
     }
-    assert result.collect().to_dict(as_series=False) == {
+    assert result.df.collect().to_dict(as_series=False) == {
         "id": [1],
         "name": ["A"],
     }
@@ -4708,7 +4728,7 @@ def test_read_excel_returns_existing_data_when_data_is_provided(tmp_path):
         )
     )
 
-    result = step.execute(data=existing_data).collect()
+    result = step.execute(data=FrameContext(df=existing_data)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "existing": [100],
@@ -4744,12 +4764,12 @@ def test_read_excel_still_reads_and_stores_when_existing_data_is_provided(tmp_pa
         )
     )
 
-    result = step.execute(data=existing_data, context=context).collect()
+    result = step.execute(data=FrameContext(df=existing_data), context=context).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "existing": [100],
     }
-    assert context.extra_inputs["excel_input"].collect().to_dict(as_series=False) == {
+    assert context.extra_inputs["excel_input"].df.collect().to_dict(as_series=False) == {
         "id": [1],
         "name": ["A"],
     }
@@ -4778,7 +4798,7 @@ def test_read_excel_raises_for_missing_file(tmp_path):
     )
 
     with pytest.raises(FileNotFoundError):
-        step.execute().collect()
+        step.execute().df.collect()
         
 def test_read_folder_csv_reads_and_concatenates_csv_files(tmp_path):
     (tmp_path / "first.csv").write_text(
@@ -4799,7 +4819,7 @@ def test_read_folder_csv_reads_and_concatenates_csv_files(tmp_path):
         )
     )
 
-    result = step.execute().collect().sort("id")
+    result = step.execute().df.collect().sort("id")
 
     assert result.to_dict(as_series=False) == {
         "id": ["1", "2"],
@@ -4828,7 +4848,7 @@ def test_read_folder_csv_uses_custom_pattern(tmp_path):
         )
     )
 
-    result = step.execute().collect()
+    result = step.execute().df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": ["1"],
@@ -4857,7 +4877,7 @@ def test_read_folder_csv_reads_custom_separator(tmp_path):
         )
     )
 
-    result = step.execute().collect().sort("id")
+    result = step.execute().df.collect().sort("id")
 
     assert result.to_dict(as_series=False) == {
         "id": ["1", "2"],
@@ -4886,7 +4906,7 @@ def test_read_folder_csv_can_disable_source_file_column(tmp_path):
         )
     )
 
-    result = step.execute().collect().sort("id")
+    result = step.execute().df.collect().sort("id")
 
     assert result.to_dict(as_series=False) == {
         "id": ["1", "2"],
@@ -4910,7 +4930,7 @@ def test_read_folder_csv_uses_custom_source_column(tmp_path):
         )
     )
 
-    result = step.execute().collect()
+    result = step.execute().df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": ["1"],
@@ -4942,7 +4962,7 @@ def test_read_folder_csv_supports_recursive_search(tmp_path):
         )
     )
 
-    result = step.execute().collect().sort("id")
+    result = step.execute().df.collect().sort("id")
 
     assert result.to_dict(as_series=False) == {
         "id": ["1", "2"],
@@ -4974,7 +4994,7 @@ def test_read_folder_csv_non_recursive_ignores_nested_files(tmp_path):
         )
     )
 
-    result = step.execute().collect()
+    result = step.execute().df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": ["1"],
@@ -5002,7 +5022,7 @@ def test_read_folder_csv_concatenates_different_schemas_diagonally(tmp_path):
         )
     )
 
-    result = step.execute().collect().sort("id")
+    result = step.execute().df.collect().sort("id")
 
     assert result.to_dict(as_series=False) == {
         "id": ["1", "2"],
@@ -5032,7 +5052,7 @@ def test_read_folder_csv_can_infer_types(tmp_path):
         )
     )
 
-    result = step.execute().collect().sort("id")
+    result = step.execute().df.collect().sort("id")
 
     assert result.schema["id"] == pl.Int64
     assert result.schema["value"] == pl.Int64
@@ -5065,13 +5085,13 @@ def test_read_folder_csv_stores_result_in_context_when_enabled(tmp_path):
     result = step.execute(context=context)
 
     assert "folder_csv" in context.extra_inputs
-    assert isinstance(context.extra_inputs["folder_csv"], pl.LazyFrame)
-    assert context.extra_inputs["folder_csv"].collect().to_dict(as_series=False) == {
+    assert isinstance(context.extra_inputs["folder_csv"], FrameContext)
+    assert context.extra_inputs["folder_csv"].df.collect().to_dict(as_series=False) == {
         "id": ["1"],
         "name": ["A"],
         "source_file": ["first.csv"],
     }
-    assert result.collect().to_dict(as_series=False) == {
+    assert result.df.collect().to_dict(as_series=False) == {
         "id": ["1"],
         "name": ["A"],
         "source_file": ["first.csv"],
@@ -5121,7 +5141,7 @@ def test_read_folder_csv_returns_existing_data_when_data_is_provided(tmp_path):
         )
     )
 
-    result = step.execute(data=existing_data).collect()
+    result = step.execute(data=FrameContext(df=existing_data)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "existing": [100],
@@ -5153,12 +5173,12 @@ def test_read_folder_csv_still_reads_and_stores_when_existing_data_is_provided(t
         )
     )
 
-    result = step.execute(data=existing_data, context=context).collect()
+    result = step.execute(data=FrameContext(df=existing_data), context=context).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "existing": [100],
     }
-    assert context.extra_inputs["folder_csv"].collect().to_dict(as_series=False) == {
+    assert context.extra_inputs["folder_csv"].df.collect().to_dict(as_series=False) == {
         "id": ["1"],
         "name": ["A"],
         "source_file": ["first.csv"],
@@ -5182,7 +5202,8 @@ def test_read_folder_csv_returns_lazyframe(tmp_path):
 
     result = step.execute()
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_read_folder_csv_rejects_missing_path_parameter():
@@ -5225,7 +5246,7 @@ def test_read_folder_excel_reads_and_concatenates_excel_files(tmp_path):
         )
     )
 
-    result = step.execute().collect().sort("id")
+    result = step.execute().df.collect().sort("id")
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 2],
@@ -5251,7 +5272,7 @@ def test_read_folder_excel_uses_custom_pattern(tmp_path):
         )
     )
 
-    result = step.execute().collect()
+    result = step.execute().df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1],
@@ -5284,7 +5305,7 @@ def test_read_folder_excel_reads_selected_sheet(tmp_path):
         )
     )
 
-    result = step.execute().collect()
+    result = step.execute().df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [2],
@@ -5310,7 +5331,7 @@ def test_read_folder_excel_can_disable_source_file_column(tmp_path):
         )
     )
 
-    result = step.execute().collect().sort("id")
+    result = step.execute().df.collect().sort("id")
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 2],
@@ -5332,7 +5353,7 @@ def test_read_folder_excel_uses_custom_source_column(tmp_path):
         )
     )
 
-    result = step.execute().collect()
+    result = step.execute().df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1],
@@ -5355,7 +5376,7 @@ def test_read_folder_excel_can_add_source_path_column(tmp_path):
         )
     )
 
-    result = step.execute().collect()
+    result = step.execute().df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1],
@@ -5380,7 +5401,7 @@ def test_read_folder_excel_uses_custom_source_path_column(tmp_path):
         )
     )
 
-    result = step.execute().collect()
+    result = step.execute().df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1],
@@ -5409,7 +5430,7 @@ def test_read_folder_excel_supports_recursive_search(tmp_path):
         )
     )
 
-    result = step.execute().collect().sort("id")
+    result = step.execute().df.collect().sort("id")
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 2],
@@ -5437,7 +5458,7 @@ def test_read_folder_excel_non_recursive_ignores_nested_files(tmp_path):
         )
     )
 
-    result = step.execute().collect()
+    result = step.execute().df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1],
@@ -5466,13 +5487,13 @@ def test_read_folder_excel_stores_result_in_context_when_enabled(tmp_path):
     result = step.execute(context=context)
 
     assert "folder_excel" in context.extra_inputs
-    assert isinstance(context.extra_inputs["folder_excel"], pl.LazyFrame)
-    assert context.extra_inputs["folder_excel"].collect().to_dict(as_series=False) == {
+    assert isinstance(context.extra_inputs["folder_excel"], FrameContext)
+    assert context.extra_inputs["folder_excel"].df.collect().to_dict(as_series=False) == {
         "id": [1],
         "name": ["A"],
         "source_file": ["input.xlsx"],
     }
-    assert result.collect().to_dict(as_series=False) == {
+    assert result.df.collect().to_dict(as_series=False) == {
         "id": [1],
         "name": ["A"],
         "source_file": ["input.xlsx"],
@@ -5520,7 +5541,7 @@ def test_read_folder_excel_returns_existing_data_when_data_is_provided(tmp_path)
         )
     )
 
-    result = step.execute(data=existing_data).collect()
+    result = step.execute(data=FrameContext(df=existing_data)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "existing": [100],
@@ -5551,12 +5572,12 @@ def test_read_folder_excel_still_reads_and_stores_when_existing_data_is_provided
         )
     )
 
-    result = step.execute(data=existing_data, context=context).collect()
+    result = step.execute(data=FrameContext(df=existing_data), context=context).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "existing": [100],
     }
-    assert context.extra_inputs["folder_excel"].collect().to_dict(as_series=False) == {
+    assert context.extra_inputs["folder_excel"].df.collect().to_dict(as_series=False) == {
         "id": [1],
         "name": ["A"],
         "source_file": ["input.xlsx"],
@@ -5579,7 +5600,8 @@ def test_read_folder_excel_returns_lazyframe(tmp_path):
 
     result = step.execute()
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_read_folder_excel_rejects_missing_path_parameter():
@@ -5624,7 +5646,7 @@ def test_regex_extract_creates_output_column_from_first_group():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "text": ["APM-123", "APM-456", "NO_MATCH"],
@@ -5651,7 +5673,7 @@ def test_regex_extract_supports_custom_group_index():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "text": ["APM-123-PL", "APM-456-DE"],
@@ -5678,7 +5700,7 @@ def test_regex_extract_can_overwrite_existing_column():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "text": ["APM-123", "APM-456"],
@@ -5700,9 +5722,10 @@ def test_regex_extract_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_regex_extract_rejects_missing_column_parameter():
@@ -5759,7 +5782,7 @@ def test_regex_extract_raises_for_missing_dataframe_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_regex_extract_raises_for_invalid_regex_pattern():
@@ -5777,7 +5800,7 @@ def test_regex_extract_raises_for_invalid_regex_pattern():
     )
 
     with pytest.raises(pl.exceptions.ComputeError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_remove_duplicates_removes_duplicate_rows_using_all_columns():
     df = pl.DataFrame(
@@ -5794,7 +5817,7 @@ def test_remove_duplicates_removes_duplicate_rows_using_all_columns():
         )
     )
 
-    result = step.execute(df).collect().sort("id")
+    result = step.execute(FrameContext(df=df)).df.collect().sort("id")
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 2],
@@ -5819,7 +5842,7 @@ def test_remove_duplicates_uses_subset_columns():
         )
     )
 
-    result = step.execute(df).collect().sort("id")
+    result = step.execute(FrameContext(df=df)).df.collect().sort("id")
 
     assert result.height == 2
     assert result["id"].to_list() == [1, 2]
@@ -5843,7 +5866,7 @@ def test_remove_duplicates_keep_first():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1],
@@ -5869,7 +5892,7 @@ def test_remove_duplicates_keep_last():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1],
@@ -5891,7 +5914,7 @@ def test_remove_duplicates_keeps_all_rows_when_no_duplicates_exist():
         )
     )
 
-    result = step.execute(df).collect().sort("id")
+    result = step.execute(FrameContext(df=df)).df.collect().sort("id")
 
     assert result["id"].to_list() == [1, 2, 3]
 
@@ -5910,9 +5933,10 @@ def test_remove_duplicates_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_remove_duplicates_rejects_invalid_keep_value():
@@ -5944,7 +5968,7 @@ def test_remove_duplicates_raises_for_missing_subset_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_rename_columns_renames_single_column():
     df = pl.DataFrame(
@@ -5962,7 +5986,7 @@ def test_rename_columns_renames_single_column():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "new_name": [1, 2],
@@ -5990,7 +6014,7 @@ def test_rename_columns_renames_multiple_columns():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 2],
@@ -6020,7 +6044,7 @@ def test_rename_columns_preserves_column_order():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.columns == ["a", "renamed_b", "renamed_c"]
 
@@ -6041,9 +6065,10 @@ def test_rename_columns_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_rename_columns_rejects_missing_mapping_parameter():
@@ -6073,7 +6098,7 @@ def test_rename_columns_raises_for_missing_dataframe_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_rename_columns_raises_when_target_column_already_exists():
@@ -6094,7 +6119,7 @@ def test_rename_columns_raises_when_target_column_already_exists():
     )
 
     with pytest.raises(pl.exceptions.DuplicateError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_reorder_columns_reorders_columns():
     df = pl.DataFrame(
@@ -6114,7 +6139,7 @@ def test_reorder_columns_reorders_columns():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.columns == ["c", "a", "b"]
     assert result.to_dict(as_series=False) == {
@@ -6142,7 +6167,7 @@ def test_reorder_columns_can_select_subset_of_columns():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "b": [2],
@@ -6167,7 +6192,7 @@ def test_reorder_columns_keeps_order_when_same_order_is_given():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.columns == ["a", "b"]
 
@@ -6189,9 +6214,10 @@ def test_reorder_columns_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_reorder_columns_rejects_missing_columns_parameter():
@@ -6221,7 +6247,7 @@ def test_reorder_columns_raises_for_missing_dataframe_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_replace_values_replaces_single_value_pair():
     df = pl.DataFrame(
@@ -6241,7 +6267,7 @@ def test_replace_values_replaces_single_value_pair():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["status"].to_list() == ["ok", "fail", "ok"]
 
@@ -6266,7 +6292,7 @@ def test_replace_values_replaces_multiple_values_using_mapping():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["status"].to_list() == [
         "success",
@@ -6294,7 +6320,7 @@ def test_replace_values_preserves_unmatched_values():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["value"].to_list() == [1, 20, 3]
 
@@ -6318,7 +6344,7 @@ def test_replace_values_does_not_modify_other_columns():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "status": ["ok", "fail"],
@@ -6344,7 +6370,7 @@ def test_replace_values_can_replace_with_null():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["status"].to_list() == ["ok", None, "nok"]
 
@@ -6368,7 +6394,7 @@ def test_replace_values_mapping_can_replace_with_null():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["status"].to_list() == ["ok", None, "nok"]
 
@@ -6391,9 +6417,10 @@ def test_replace_values_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_replace_values_rejects_missing_column_parameter():
@@ -6457,7 +6484,7 @@ def test_replace_values_raises_for_missing_dataframe_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_select_columns_selects_requested_columns():
     df = pl.DataFrame(
@@ -6477,7 +6504,7 @@ def test_select_columns_selects_requested_columns():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "name": ["A", "B"],
@@ -6503,7 +6530,7 @@ def test_select_columns_preserves_requested_order():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.columns == ["value", "id"]
 
@@ -6525,7 +6552,7 @@ def test_select_columns_can_select_single_column():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 2],
@@ -6549,9 +6576,10 @@ def test_select_columns_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_select_columns_rejects_missing_columns_parameter():
@@ -6581,7 +6609,7 @@ def test_select_columns_raises_for_missing_dataframe_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_sort_rows_sorts_by_single_column_ascending():
     df = pl.DataFrame(
@@ -6600,7 +6628,7 @@ def test_sort_rows_sorts_by_single_column_ascending():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["id"].to_list() == [1, 2, 3]
 
@@ -6621,7 +6649,7 @@ def test_sort_rows_sorts_by_single_column_descending():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["id"].to_list() == [3, 2, 1]
 
@@ -6642,7 +6670,7 @@ def test_sort_rows_uses_ascending_by_default():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result["id"].to_list() == [1, 2, 3]
 
@@ -6667,7 +6695,7 @@ def test_sort_rows_sorts_by_multiple_columns_with_different_directions():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "country": ["DE", "DE", "PL", "PL"],
@@ -6692,7 +6720,7 @@ def test_sort_rows_does_not_modify_columns():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.columns == ["id", "name"]
     assert result.to_dict(as_series=False) == {
@@ -6717,9 +6745,10 @@ def test_sort_rows_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_sort_rows_rejects_missing_columns_parameter():
@@ -6773,7 +6802,7 @@ def test_sort_rows_raises_for_missing_dataframe_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_split_column_splits_text_column_into_multiple_columns():
     df = pl.DataFrame(
@@ -6793,7 +6822,7 @@ def test_split_column_splits_text_column_into_multiple_columns():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "full_name": ["John Smith", "Anna Nowak"],
@@ -6821,7 +6850,7 @@ def test_split_column_drops_original_column_when_enabled():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "prefix": ["APM"],
@@ -6848,7 +6877,7 @@ def test_split_column_fills_missing_parts_with_null():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "code": ["APM-123", "BOX"],
@@ -6877,7 +6906,7 @@ def test_split_column_respects_max_splits():
         )
     )
 
-    result = step.execute(df).collect()
+    result = step.execute(FrameContext(df=df)).df.collect()
 
     assert result.to_dict(as_series=False) == {
         "code": ["A-B-C-D"],
@@ -6904,9 +6933,10 @@ def test_split_column_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_split_column_rejects_missing_column_parameter():
@@ -6967,7 +6997,7 @@ def test_split_column_raises_for_missing_dataframe_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_unpivot_converts_wide_columns_to_long_rows():
     df = pl.DataFrame(
@@ -6990,7 +7020,7 @@ def test_unpivot_converts_wide_columns_to_long_rows():
         )
     )
 
-    result = step.execute(df).collect().sort(["id", "metric"])
+    result = step.execute(FrameContext(df=df)).df.collect().sort(["id", "metric"])
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 1, 2, 2],
@@ -7021,7 +7051,7 @@ def test_unpivot_supports_multiple_index_columns():
         )
     )
 
-    result = step.execute(df).collect().sort(["country", "id", "metric"])
+    result = step.execute(FrameContext(df=df)).df.collect().sort(["country", "id", "metric"])
 
     assert result.to_dict(as_series=False) == {
         "country": ["DE", "DE", "PL", "PL"],
@@ -7052,7 +7082,7 @@ def test_unpivot_uses_custom_variable_and_value_names():
         )
     )
 
-    result = step.execute(df).collect().sort("sensor")
+    result = step.execute(FrameContext(df=df)).df.collect().sort("sensor")
 
     assert result.to_dict(as_series=False) == {
         "id": [1, 1],
@@ -7081,9 +7111,10 @@ def test_unpivot_returns_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert isinstance(result, pl.LazyFrame)
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
 
 
 def test_unpivot_rejects_missing_on_parameter():
@@ -7163,7 +7194,7 @@ def test_unpivot_raises_for_missing_on_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
 
 
 def test_unpivot_raises_for_missing_index_column():
@@ -7187,7 +7218,7 @@ def test_unpivot_raises_for_missing_index_column():
     )
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
-        step.execute(df).collect()
+        step.execute(FrameContext(df=df)).df.collect()
         
 def test_write_csv_writes_dataframe_to_file(tmp_path):
     output_path = tmp_path / "output.csv"
@@ -7208,7 +7239,7 @@ def test_write_csv_writes_dataframe_to_file(tmp_path):
         )
     )
 
-    step.execute(df)
+    step.execute(FrameContext(df=df))
 
     result = pl.read_csv(output_path)
 
@@ -7238,7 +7269,7 @@ def test_write_csv_uses_custom_separator(tmp_path):
         )
     )
 
-    step.execute(df)
+    step.execute(FrameContext(df=df))
 
     result = pl.read_csv(
         output_path,
@@ -7269,9 +7300,11 @@ def test_write_csv_returns_original_lazyframe():
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert result is df
+    assert result is not None
+    assert isinstance(result, FrameContext)
+    assert result.df is df
 
 
 def test_write_csv_creates_file_when_output_directory_exists(tmp_path):
@@ -7292,7 +7325,7 @@ def test_write_csv_creates_file_when_output_directory_exists(tmp_path):
         )
     )
 
-    step.execute(df)
+    step.execute(FrameContext(df=df))
 
     assert output_path.exists()
     assert output_path.is_file()
@@ -7342,7 +7375,7 @@ def test_write_excel_writes_dataframe_to_file(tmp_path):
         )
     )
 
-    step.execute(df)
+    step.execute(FrameContext(df=df))
 
     result = pl.read_excel(output_path)
 
@@ -7372,7 +7405,7 @@ def test_write_excel_writes_selected_sheet(tmp_path):
         )
     )
 
-    step.execute(df)
+    step.execute(FrameContext(df=df))
 
     result = pl.read_excel(
         output_path,
@@ -7403,9 +7436,11 @@ def test_write_excel_returns_original_lazyframe(tmp_path):
         )
     )
 
-    result = step.execute(df)
+    result = step.execute(FrameContext(df=df))
 
-    assert result is df
+    assert result is not None
+    assert isinstance(result, FrameContext)
+    assert result.df is df
 
 
 def test_write_excel_creates_file_when_output_directory_exists(tmp_path):
@@ -7426,7 +7461,7 @@ def test_write_excel_creates_file_when_output_directory_exists(tmp_path):
         )
     )
 
-    step.execute(df)
+    step.execute(FrameContext(df=df))
 
     assert output_path.exists()
     assert output_path.is_file()

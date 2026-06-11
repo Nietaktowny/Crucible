@@ -3,7 +3,7 @@ from typing import Any
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 
 class FillNullsConfig(BaseModel):
@@ -19,12 +19,13 @@ class FillNullsStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame,
+        data: FrameContext,
         context: StepExecutionContext = None,
-    ) -> pl.LazyFrame:
+    ) -> FrameContext:
         expressions = [
             pl.col(column).fill_null(self.config.value)
             for column in self.config.columns
         ]
 
-        return data.with_columns(expressions)
+        result = data.df.with_columns(expressions)
+        return FrameContext(df=result, schema=data.schema)

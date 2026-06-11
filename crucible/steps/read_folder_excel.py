@@ -4,7 +4,7 @@ import polars as pl
 from pydantic import BaseModel
 
 from crucible.io import ExcelIOManager
-from crucible.models import StepConfig, Step, StepExecutionContext
+from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext
 
 
 class ReadFolderExcelConfig(BaseModel):
@@ -31,9 +31,9 @@ class ReadFolderExcelStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame = None,
+        data: FrameContext | None = None,
         context: StepExecutionContext = None,
-    ) -> pl.LazyFrame:
+    ) -> FrameContext:
         glob_method = self.config.path.rglob if self.config.recursive else self.config.path.glob
         files = sorted(glob_method(self.config.pattern))
 
@@ -65,7 +65,9 @@ class ReadFolderExcelStep(Step):
 
         result = pl.concat(frames, how="vertical")
 
-        if context is not None and self.config.context_store is True:
-            context.extra_inputs[self.config.context_key] = result
+        frame_context = FrameContext(df=result)
 
-        return result if data is None else data
+        if context is not None and self.config.context_store is True:
+            context.extra_inputs[self.config.context_key] = frame_context
+
+        return frame_context if data is None else data

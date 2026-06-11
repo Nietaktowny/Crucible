@@ -1,7 +1,7 @@
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 
 class SplitColumnConfig(BaseModel):
@@ -22,9 +22,9 @@ class SplitColumnStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame,
+        data: FrameContext,
         context: StepExecutionContext = None,
-    ) -> pl.LazyFrame:
+    ) -> FrameContext:
 
         split_expr = pl.col(self.config.column).str.split_exact(
             by=self.config.delimiter,
@@ -33,7 +33,7 @@ class SplitColumnStep(Step):
             else self.config.max_splits
         )
 
-        result = data.with_columns(
+        result = data.df.with_columns(
             split_expr.alias("__split")
         )
 
@@ -47,4 +47,5 @@ class SplitColumnStep(Step):
         if self.config.drop_original:
             columns_to_keep.append(self.config.column)
 
-        return result.drop(columns_to_keep)
+        result = result.drop(columns_to_keep)
+        return FrameContext(df=result, schema=data.schema)

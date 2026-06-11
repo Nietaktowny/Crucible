@@ -3,7 +3,7 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 class SortColumnConfig(BaseModel):
     name: str
@@ -18,7 +18,7 @@ class SortRowsStep(Step):
     description = "Sort rows based on specified columns and sort directions."
     config_model = SortRowsConfig
 
-    def execute(self, data: pl.LazyFrame, context: StepExecutionContext = None) -> pl.LazyFrame:
+    def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
         by = [column.name for column in self.config.columns]
 
         descending = [
@@ -26,7 +26,8 @@ class SortRowsStep(Step):
             for column in self.config.columns
         ]
 
-        return data.sort(
+        result = data.df.sort(
             by=by,
             descending=descending,
         )
+        return FrameContext(df=result, schema=data.schema)

@@ -4,7 +4,7 @@ from uuid import uuid4
 from pydantic import BaseModel
 
 from crucible.io import CsvIOManager
-from crucible.models import StepConfig, Step, StepExecutionContext
+from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext
 
 import polars as pl
 
@@ -25,8 +25,9 @@ class ReadCsvStep(Step):
         super().__init__(config)
         self.io_manager = CsvIOManager(self.config.path, self.config.separator)
 
-    def execute(self, data: pl.LazyFrame = None, context: StepExecutionContext = None) -> pl.LazyFrame:
+    def execute(self, data: FrameContext | None = None, context: StepExecutionContext = None) -> FrameContext:
         df =  self.io_manager.read()
+        frame_context = FrameContext(df=df)
         if context is not None and self.config.context_store is True:
-            context.extra_inputs[self.config.context_key] = df
-        return df if data is None else data
+            context.extra_inputs[self.config.context_key] = frame_context
+        return frame_context if data is None else data

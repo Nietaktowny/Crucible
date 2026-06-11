@@ -3,7 +3,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from crucible.io import ExcelIOManager
-from crucible.models import StepConfig, Step, StepExecutionContext
+from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext
 
 import polars as pl
 
@@ -21,6 +21,6 @@ class WriteExcelStep(Step):
         super().__init__(config)
         self.io_manager = ExcelIOManager(self.config.path, self.config.sheet)
 
-    def execute(self, data: pl.LazyFrame = None, context: StepExecutionContext = None) -> pl.LazyFrame:
-        self.io_manager.write(data)
+    def execute(self, data: FrameContext | None = None, context: StepExecutionContext = None) -> FrameContext:
+        self.io_manager.write(data.df)
         return data

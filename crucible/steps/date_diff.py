@@ -3,7 +3,7 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel, model_validator
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 
 class DateDiffConfig(BaseModel):
@@ -51,9 +51,9 @@ class DateDiffStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame,
+        data: FrameContext,
         context: StepExecutionContext = None,
-    ) -> pl.LazyFrame:
+    ) -> FrameContext:
         start_expr = self._build_value_expression(
             column=self.config.start_column,
             value=self.config.start_value,
@@ -66,9 +66,10 @@ class DateDiffStep(Step):
 
         duration_expr = end_expr - start_expr
 
-        return data.with_columns(
+        result = data.df.with_columns(
             self._convert_duration(duration_expr).alias(self.config.output_column)
         )
+        return FrameContext(df=result, schema=data.schema)
 
     def _build_value_expression(
         self,

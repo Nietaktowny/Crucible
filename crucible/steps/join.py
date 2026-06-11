@@ -3,7 +3,7 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 class JoinConfig(BaseModel):
     left_on: str | list[str]
@@ -18,26 +18,30 @@ class JoinStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame,
+        data: FrameContext,
         context: StepExecutionContext | None = None,
-    ) -> pl.LazyFrame:
+    ) -> FrameContext:
         if context is None:
             raise ValueError("JoinStep requires execution context")
 
-        right = context.extra_inputs.pop("right", None)
+        right_context = context.extra_inputs.pop("right", None)
 
-        if right is None:
+        if right_context is None:
             raise ValueError(
                 "JoinStep requires extra input named 'right'. "
                 f"Available extra inputs: {list(context.extra_inputs.keys())}"
             )
 
-        if self.config.how == "cross":
-            return data.join(other=right, how="cross")
+        right = right_context.df if isinstance(right_context, FrameContext) else right_context
 
-        return data.join(
-            other=right,
-            left_on=self.config.left_on,
-            right_on=self.config.right_on,
-            how=self.config.how,
-        )
+        if self.config.how == "cross":
+            result = data.df.join(other=right, how="cross")
+        else:
+            result = data.df.join(
+                other=right,
+                left_on=self.config.left_on,
+                right_on=self.config.right_on,
+                how=self.config.how,
+            )
+
+        return FrameContext(df=result, schema=data.schema)

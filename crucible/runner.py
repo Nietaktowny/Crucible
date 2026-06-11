@@ -13,7 +13,6 @@ class WorkflowRunResult:
     workflow_path: Path
     success: bool = True
 
-
 class WorkflowRunner:
     """
     Public programmatic interface for running Crucible workflows.

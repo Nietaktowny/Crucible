@@ -1,4 +1,4 @@
-from crucible.models import Step
+from crucible.models import Step, FrameContext
 import polars as pl
 from pydantic import BaseModel
 
@@ -13,5 +13,6 @@ class SelectColumnsStep(Step):
     description = "Select a subset of columns from the data."
     config_model = SelectColumnsConfig
     
-    def execute(self, data: pl.LazyFrame, context: StepExecutionContext = None) -> pl.LazyFrame:
-        return data.select(self.config.columns)
+    def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
+        result = data.df.select(self.config.columns)
+        return FrameContext(df=result, schema=data.schema)

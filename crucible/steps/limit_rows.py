@@ -1,6 +1,6 @@
 from typing import Literal
 
-from crucible.models import Step
+from crucible.models import Step, FrameContext
 import polars as pl
 from pydantic import BaseModel
 
@@ -16,11 +16,12 @@ class LimitRowsStep(Step):
     description = "Limit rows to first or last n rows"
     config_model = LimitRowsConfig
     
-    def execute(self, data: pl.LazyFrame, context: StepExecutionContext = None) -> pl.LazyFrame:
+    def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
         if self.config.mode == 'head':
-            return data.head(self.config.limit)
+            result = data.df.head(self.config.limit)
         elif self.config.mode == 'tail':
-            return data.tail(self.config.limit)
+            result = data.df.tail(self.config.limit)
         else:
             raise ValueError(f"Unknown limit rows mode for LimitRowsStep, passed: {self.config.mode}. Expected one of: {['head', 'tail']}")
+        return FrameContext(df=result, schema=data.schema)
             

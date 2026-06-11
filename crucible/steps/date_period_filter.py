@@ -4,7 +4,7 @@ import polars as pl
 from pydantic import BaseModel
 from typing import Literal
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 
 class DatePeriodFilterConfig(BaseModel):
@@ -25,9 +25,9 @@ class DatePeriodFilterStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame,
+        data: FrameContext,
         context: StepExecutionContext = None,
-    ) -> pl.LazyFrame:
+    ) -> FrameContext:
         today = date.today()
 
         match self.config.period:
@@ -58,4 +58,5 @@ class DatePeriodFilterStep(Step):
                     f"Unsupported period: {self.config.period}"
                 )
 
-        return data.filter(condition)
+        result = data.df.filter(condition)
+        return FrameContext(df=result, schema=data.schema)

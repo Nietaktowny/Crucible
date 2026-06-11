@@ -3,7 +3,7 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 
 class AggregationConfig(BaseModel):
@@ -68,12 +68,13 @@ class GroupByStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame,
+        data: FrameContext,
         context: StepExecutionContext = None,
-    ) -> pl.LazyFrame:
+    ) -> FrameContext:
         expressions = [
             self._build_aggregation(aggregation)
             for aggregation in self.config.aggregations
         ]
 
-        return data.group_by(self.config.by).agg(expressions)
+        result = data.df.group_by(self.config.by).agg(expressions)
+        return FrameContext(df=result, schema=data.schema)

@@ -1,6 +1,6 @@
 from typing import Literal
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 import polars as pl
 from pydantic import BaseModel
@@ -18,10 +18,11 @@ class RemoveDuplicatesStep(Step):
 
     def execute(
         self,
-        data: pl.LazyFrame,
+        data: FrameContext,
         context: StepExecutionContext = None,
-    ) -> pl.LazyFrame:
-        return data.unique(
+    ) -> FrameContext:
+        result = data.df.unique(
             subset=self.config.columns,
             keep=self.config.keep,
         )
+        return FrameContext(df=result, schema=data.schema)

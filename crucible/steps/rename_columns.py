@@ -1,7 +1,7 @@
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext
+from crucible.models import Step, StepExecutionContext, FrameContext
 
 class RenameColumnsConfig(BaseModel):
     mapping: dict[str, str]
@@ -11,5 +11,6 @@ class RenameColumnsStep(Step):
     description = "Rename columns based on a provided mapping."
     config_model = RenameColumnsConfig
 
-    def execute(self, data: pl.LazyFrame, context: StepExecutionContext = None) -> pl.LazyFrame:
-        return data.rename(self.config.mapping)
+    def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
+        result = data.df.rename(self.config.mapping)
+        return FrameContext(df=result, schema=data.schema)
