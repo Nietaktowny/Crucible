@@ -1,6 +1,13 @@
 import logging
 
-from crucible.models import Workflow, StepExecutionPlan, WorkflowExecutionPlan, StepConfig, MultiSourcesStep, MultiSourcesStepConfig
+from crucible.models import (
+    Workflow,
+    StepExecutionPlan,
+    WorkflowExecutionPlan,
+    StepConfig,
+    MultiSourcesStepConfig,
+    WorkflowRunConfig
+)
 from crucible.models._workflow import StepConfig
 from crucible.workflow.registry import StepsRegistry
 from graphlib import TopologicalSorter
@@ -126,7 +133,7 @@ class WorkflowCompiler:
 
                 builder.insert_chain_before(node, source_nodes)
 
-    def compile(self, workflow: Workflow) -> WorkflowExecutionPlan:
+    def compile(self, workflow: Workflow, *, config: WorkflowRunConfig | None = None) -> WorkflowExecutionPlan:
         builder = PlanBuilder()
 
         nodes = [

@@ -13,10 +13,14 @@ export type WorkflowResponse = {
   content: string;
 };
 
+export type PreviewRow = Record<string, unknown>;
+
 export type WorkflowRunResponse = {
   workflow_name: string;
   success: boolean;
   message: string;
+  preview: PreviewRow[] | null;
+  row_count: number | null;
 };
 
 const API_BASE_URL =
@@ -88,12 +92,18 @@ export function deleteWorkflow(name: string): Promise<void> {
 export function runWorkflow(
   name: string,
   printPlan = false,
+  inspect = true,
+  previewLimit = 200,
 ): Promise<WorkflowRunResponse> {
   return request<WorkflowRunResponse>(
     `/runs/workflows/${encodeURIComponent(name)}`,
     {
       method: "POST",
-      body: JSON.stringify({ print_plan: printPlan }),
+      body: JSON.stringify({
+        print_plan: printPlan,
+        inspect,
+        preview_limit: previewLimit,
+      }),
     },
   );
 }

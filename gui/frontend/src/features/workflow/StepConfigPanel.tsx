@@ -32,13 +32,9 @@ declare global {
 
 const LITERAL_OPTIONS: Record<string, string[]> = {
   "remove_duplicates.keep": ["first", "last"],
-
   "join.how": ["left", "inner", "right", "full", "anti", "cross"],
-
   "concat.how": ["vertical", "diagonal", "horizontal"],
-
   "sort_rows.columns.direction": ["asc", "desc"],
-
   "group_by.aggregations.function": [
     "sum",
     "min",
@@ -51,19 +47,15 @@ const LITERAL_OPTIONS: Record<string, string[]> = {
     "last",
     "n_unique",
   ],
-
   "date_add.unit": ["days", "hours", "minutes", "seconds", "milliseconds"],
   "date_diff.unit": ["days", "hours", "minutes", "seconds", "milliseconds"],
-
   "date_period_filter.period": [
     "current_year",
     "current_month",
     "current_day",
   ],
-
   "date_range_filter.value_type": ["date", "datetime"],
   "date_range_filter.closed": ["both", "left", "right", "none"],
-
   "extract_datetime_part.part": [
     "year",
     "month",
@@ -74,9 +66,24 @@ const LITERAL_OPTIONS: Record<string, string[]> = {
     "minute",
     "second",
   ],
-
   "extract_date_time.extract": ["date", "time"],
 };
+
+const FILTER_OPERATORS = [
+  "=",
+  "!=",
+  ">",
+  ">=",
+  "<",
+  "<=",
+  "contains",
+  "starts_with",
+  "ends_with",
+  "is_null",
+  "is_not_null",
+];
+
+type FilterSideKind = "column" | "value";
 
 const POLARS_TYPE_OPTIONS = [
   "string",
@@ -264,6 +271,95 @@ function PrimitiveValueInput({
         onChange(parsePrimitiveValue(event.target.value, value))
       }
     />
+  );
+}
+
+function readFilterCondition(value: unknown) {
+  const condition = isPlainObject(value) ? value : {};
+
+  const left = isPlainObject(condition.left) ? condition.left : {};
+  const right = isPlainObject(condition.right) ? condition.right : {};
+
+  return {
+    leftKind: (left.column !== undefined ? "column" : "value") as FilterSideKind,
+    leftValue: String(left.column ?? left.value ?? ""),
+    operator: String(condition.operator ?? "="),
+    rightKind: (right.column !== undefined ? "column" : "value") as FilterSideKind,
+    rightValue: String(right.column ?? right.value ?? ""),
+  };
+}
+
+function buildFilterSide(kind: FilterSideKind, value: string) {
+  return kind === "column" ? { column: value } : { value };
+}
+
+function FilterConditionEditor({
+  value,
+  onChange,
+}: {
+  value: unknown;
+  onChange: (value: unknown) => void;
+}) {
+  const condition = readFilterCondition(value);
+
+  function update(next: Partial<typeof condition>) {
+    const merged = { ...condition, ...next };
+
+    onChange({
+      left: buildFilterSide(merged.leftKind, merged.leftValue),
+      operator: merged.operator,
+      right: buildFilterSide(merged.rightKind, merged.rightValue),
+    });
+  }
+
+  return (
+    <div className="space-y-3 rounded-md border bg-background p-3">
+      <div className="space-y-2">
+        <FieldLabel>Left side</FieldLabel>
+
+        <div className="grid grid-cols-[130px_1fr] gap-2">
+          <SelectInput
+            value={condition.leftKind}
+            options={["column", "value"]}
+            onChange={(next) => update({ leftKind: next as FilterSideKind })}
+          />
+
+          <Input
+            value={condition.leftValue}
+            placeholder={condition.leftKind === "column" ? "Column name" : "Value"}
+            onChange={(event) => update({ leftValue: event.target.value })}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <FieldLabel>Operator</FieldLabel>
+
+        <SelectInput
+          value={condition.operator}
+          options={FILTER_OPERATORS}
+          onChange={(next) => update({ operator: next })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <FieldLabel>Right side</FieldLabel>
+
+        <div className="grid grid-cols-[130px_1fr] gap-2">
+          <SelectInput
+            value={condition.rightKind}
+            options={["value", "column"]}
+            onChange={(next) => update({ rightKind: next as FilterSideKind })}
+          />
+
+          <Input
+            value={condition.rightValue}
+            placeholder={condition.rightKind === "column" ? "Column name" : "Value"}
+            onChange={(event) => update({ rightValue: event.target.value })}
+          />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -685,6 +781,10 @@ function ConfigValueEditor({
 }) {
   const field = path.at(-1) ?? "";
   const literalOptions = getLiteralOptions(stepKey, path);
+
+  if (stepKey === "filter_rows" && path.join(".") === "condition") {
+    return <FilterConditionEditor value={value} onChange={onChange} />;
+  }
 
   if (
     stepKey === "join" &&

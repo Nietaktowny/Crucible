@@ -1,6 +1,7 @@
 # src/crucible_server/schemas.py
 
 from pydantic import BaseModel, Field
+from typing import Any
 
 
 class WorkflowSummary(BaseModel):
@@ -34,3 +35,5 @@ class WorkflowRunResponse(BaseModel):
     workflow_name: str
     success: bool
     message: str
+    preview: list[dict[str, Any]] | None = None
+    row_count: int | None = None

@@ -3,26 +3,34 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import WorkflowGraph from "@/features/workflow/WorkflowGraph";
 import WorkflowPreview from "@/features/workflow/WorkflowPreview";
+import WorkflowResultPreview from "@/features/workflow/WorkflowResultPreview";
 import type { Workflow } from "@/features/workflow/types";
+import type { WorkflowRunResponse } from "@/lib/crucibleApi";
 
 type WorkflowRightPanelProps = {
   workflow: Workflow;
   selectedStepId: string | null;
   onSelectStep: (stepId: string | null) => void;
+  runResult: WorkflowRunResponse | null;
 };
 
 export default function WorkflowRightPanel({
   workflow,
   selectedStepId,
   onSelectStep,
+  runResult,
 }: WorkflowRightPanelProps) {
-  const [view, setView] = useState<"graph" | "yaml">("graph");
+  const [view, setView] = useState<"graph" | "yaml" | "preview">("graph");
 
   return (
     <section className="flex min-h-0 flex-col rounded-lg border bg-card">
       <div className="flex items-center justify-between border-b px-4 py-3">
         <h2 className="text-sm font-semibold">
-          {view === "graph" ? "Workflow Graph" : "Workflow YAML"}
+          {view === "graph"
+            ? "Workflow Graph"
+            : view === "yaml"
+              ? "Workflow YAML"
+              : "Workflow Preview"}
         </h2>
 
         <div className="flex gap-2">
@@ -41,6 +49,14 @@ export default function WorkflowRightPanel({
           >
             YAML
           </Button>
+
+          <Button
+            size="sm"
+            variant={view === "preview" ? "default" : "outline"}
+            onClick={() => setView("preview")}
+          >
+            Preview
+          </Button>
         </div>
       </div>
 
@@ -51,8 +67,13 @@ export default function WorkflowRightPanel({
             selectedStepId={selectedStepId}
             onSelectStep={onSelectStep}
           />
-        ) : (
+        ) : view === "yaml" ? (
           <WorkflowPreview workflow={workflow} />
+        ) : (
+          <WorkflowResultPreview
+            preview={runResult?.preview ?? null}
+            rowCount={runResult?.row_count ?? null}
+          />
         )}
       </div>
     </section>

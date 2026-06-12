@@ -11,22 +11,34 @@ class WorkflowRunService:
         workflow_name: str,
         workflow_service: WorkflowService,
         print_plan: bool = False,
+        preview_limit: int = 200,
+        inspect: bool = True
     ) -> WorkflowRunResponse:
         workflow_path = workflow_service.get_workflow_path(workflow_name)
-
-        try:
-            run_workflow(
-                workflow_path=workflow_path,
-                print_plan=print_plan,
-            )
-        except Exception as exc:
+        
+        result = run_workflow(
+            workflow_path=workflow_path,
+            print_plan=print_plan,
+            preview_limit=preview_limit,
+            inspect=inspect
+        )
+        
+        if result.error is not None:
             raise WorkflowRunError(
                 workflow_name=workflow_name,
-                reason=str(exc),
-            ) from exc
+                reason=str(result.error),
+            ) from result.error
+
+        preview = (
+            result.preview.to_dicts()
+            if result.preview is not None
+            else None
+        )
 
         return WorkflowRunResponse(
             workflow_name=workflow_name,
             success=True,
             message="Workflow finished successfully.",
+            preview=preview,
+            row_count=result.row_count
         )

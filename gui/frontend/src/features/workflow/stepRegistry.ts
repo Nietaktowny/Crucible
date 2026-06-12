@@ -117,7 +117,15 @@ export const stepRegistry = {
     label: "Filter Rows",
     description: "Filter rows based on a declarative condition.",
     defaultConfig: {
-      condition: {},
+      condition: {
+        left: {
+          column: "",
+        },
+        operator: "=",
+        right: {
+          value: "",
+        },
+      },
     },
   },
 

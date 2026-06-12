@@ -1,17 +1,19 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from crucible.workflow import WorkflowExecutor
-from crucible.workflow.compiler import WorkflowCompiler
-from crucible.workflow.loader import WorkflowLoader
-from crucible.workflow.optimizer import WorkflowOptimizer
-from crucible.workflow.preprocessor import WorkflowPreprocessor
+import polars as pl
 
-
-@dataclass(frozen=True)
-class WorkflowRunResult:
-    workflow_path: Path
-    success: bool = True
+from crucible.models import (
+    WorkflowRunResult,
+    WorkflowRunConfig
+)
+from crucible.workflow import (
+    WorkflowExecutor,
+    WorkflowCompiler,
+    WorkflowLoader,
+    WorkflowOptimizer,
+    WorkflowPreprocessor
+)
 
 class WorkflowRunner:
     """
@@ -40,32 +42,39 @@ class WorkflowRunner:
         self.compiler = compiler or WorkflowCompiler()
         self.executor = executor or WorkflowExecutor()
 
-    def run(self, workflow_path: Path, *, print_plan: bool = False) -> WorkflowRunResult:
+    def run(self, workflow_path: Path, *,
+            print_plan: bool = False,
+            inspect: bool = False,
+            preview_limit: int = 500
+        ) -> WorkflowRunResult:
         workflow_path = Path(workflow_path)
+        config = WorkflowRunConfig(
+            inspect=inspect,
+            preview_limit=preview_limit
+        )
 
         workflow = self.loader.load(workflow_path)
-        workflow = self.preprocessor.preprocess(workflow)
-        workflow = self.optimizer.optimize(workflow)
+        workflow = self.preprocessor.preprocess(workflow, config=config)
+        workflow = self.optimizer.optimize(workflow, config=config)
 
-        execution_plan = self.compiler.compile(workflow)
+        execution_plan = self.compiler.compile(workflow, config=config)
 
         if print_plan:
             self.compiler.print_execution_plan(execution_plan)
 
-        self.executor.run(execution_plan)
-
-        return WorkflowRunResult(
-            workflow_path=workflow_path,
-            success=True,
-        )
+        return self.executor.run(execution_plan)
 
 
 def run_workflow(
     workflow_path: Path,
     *,
     print_plan: bool = False,
+    inspect: bool = False,
+    preview_limit: int = 500
 ) -> WorkflowRunResult:
     return WorkflowRunner().run(
         workflow_path=workflow_path,
+        inspect=inspect,
         print_plan=print_plan,
+        preview_limit=preview_limit
     )

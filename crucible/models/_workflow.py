@@ -4,6 +4,7 @@ from enum import StrEnum
 from abc import ABC, abstractmethod
 from uuid import uuid4
 from typing import Protocol, Mapping
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 import polars as pl
@@ -121,3 +122,37 @@ class WorkflowExecutionPlan(BaseModel):
     
     workflow: Workflow
     steps_execution_plan: list[StepExecutionPlan]
+    
+class WorkflowRunConfig(BaseModel):
+    inspect: bool = False
+    preview_limit: int = 500
+
+class WorkflowStatus(StrEnum):
+    CREATED = 'created'
+    SUCCESS = "success"
+    FAILED = 'failed'
+    WAITING = 'waiting'
+    RUNNING = 'running'
+    CANCELLED = 'cancelled'
+
+class WorkflowRuntimeStatistics(BaseModel):
+    total_steps: int = 0
+    system_steps: int = 0
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
+    total_time: float = 0.0
+    
+class WorkflowRunResult(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    
+    run_id: str = Field(default_factory=lambda: uuid4().hex)
+    status: WorkflowStatus = WorkflowStatus.CREATED
+    preview: pl.DataFrame | None = None
+    row_count: int | None = None
+    error: Exception | None = None
+    statistics: WorkflowRuntimeStatistics = Field(default_factory=WorkflowRuntimeStatistics)
+    
+    @computed_field
+    @property
+    def success(self) -> bool:
+        return self.status == WorkflowStatus.SUCCESS

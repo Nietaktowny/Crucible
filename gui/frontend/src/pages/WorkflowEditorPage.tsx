@@ -22,6 +22,7 @@ import {
   listWorkflows,
   runWorkflow,
   updateWorkflow,
+  type WorkflowRunResponse,
   type WorkflowSummary,
 } from "@/lib/crucibleApi";
 
@@ -169,6 +170,7 @@ export default function WorkflowEditorPage() {
 
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [status, setStatus] = useState("");
+  const [runResult, setRunResult] = useState<WorkflowRunResponse | null>(null);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | undefined>();
@@ -186,6 +188,7 @@ export default function WorkflowEditorPage() {
   async function loadWorkflowFromServer(name: string) {
     setErrorMessage(null);
     setErrorDetails(undefined);
+    setRunResult(null);
 
     const result = await getWorkflow(name);
     const parsed = parse(result.content) as LoadedWorkflow;
@@ -201,6 +204,7 @@ export default function WorkflowEditorPage() {
   async function handleServerWorkflowChange(name: string) {
     if (!name) {
       setSelectedServerWorkflow("");
+      setRunResult(null);
       return;
     }
 
@@ -249,10 +253,12 @@ export default function WorkflowEditorPage() {
 
     setErrorMessage(null);
     setErrorDetails(undefined);
+    setRunResult(null);
     setStatus("Running workflow...");
 
     try {
-      const result = await runWorkflow(selectedServerWorkflow);
+      const result = await runWorkflow(selectedServerWorkflow, false, true, 200);
+      setRunResult(result);
       setStatus(result.message);
     } catch (error) {
       console.error(error);
@@ -286,6 +292,7 @@ export default function WorkflowEditorPage() {
     setSelectedServerWorkflow("");
     setIsLinkedToServer(false);
     setSelectedStepId(null);
+    setRunResult(null);
     setStatus("New unsaved workflow.");
     setErrorMessage(null);
     setErrorDetails(undefined);
@@ -345,6 +352,7 @@ export default function WorkflowEditorPage() {
     });
 
     setSelectedStepId(newStep.id);
+    setRunResult(null);
   }
 
   function updateSelectedStepParameters(field: string, value: unknown) {
@@ -364,6 +372,8 @@ export default function WorkflowEditorPage() {
           : step,
       ),
     }));
+
+    setRunResult(null);
   }
 
   function updateSelectedStepMetadata(
@@ -383,6 +393,8 @@ export default function WorkflowEditorPage() {
           : step,
       ),
     }));
+
+    setRunResult(null);
   }
 
   function updateSelectedStepSources(sources: WorkflowSourceStep[]) {
@@ -399,6 +411,8 @@ export default function WorkflowEditorPage() {
           : step,
       ),
     }));
+
+    setRunResult(null);
   }
 
   function removeStep(stepId: string) {
@@ -410,6 +424,8 @@ export default function WorkflowEditorPage() {
     if (selectedStepId === stepId) {
       setSelectedStepId(null);
     }
+
+    setRunResult(null);
   }
 
   function removeSelectedStep() {
@@ -420,6 +436,7 @@ export default function WorkflowEditorPage() {
   async function importWorkflowFromFile(file: File) {
     setErrorMessage(null);
     setErrorDetails(undefined);
+    setRunResult(null);
 
     const text = await file.text();
     const parsed = parse(text) as LoadedWorkflow;
@@ -466,12 +483,13 @@ export default function WorkflowEditorPage() {
           <Input
             className="w-72"
             value={workflow.name}
-            onChange={(event) =>
+            onChange={(event) => {
               setWorkflow((current) => ({
                 ...current,
                 name: event.target.value,
-              }))
-            }
+              }));
+              setRunResult(null);
+            }}
           />
 
           <Button variant="outline" onClick={createNewWorkflow}>
@@ -567,6 +585,7 @@ export default function WorkflowEditorPage() {
             workflow={workflow}
             selectedStepId={selectedStepId}
             onSelectStep={setSelectedStepId}
+            runResult={runResult}
           />
         </main>
 

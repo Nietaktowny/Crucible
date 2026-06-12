@@ -1,5 +1,13 @@
 from crucible.workflow.executor import WorkflowExecutor
+from crucible.workflow.compiler import WorkflowCompiler
+from crucible.workflow.loader import WorkflowLoader
+from crucible.workflow.optimizer import WorkflowOptimizer
+from crucible.workflow.preprocessor import WorkflowPreprocessor
 
 __all__ = [
-    WorkflowExecutor
+    WorkflowExecutor,
+    WorkflowCompiler,
+    WorkflowLoader,
+    WorkflowOptimizer,
+    WorkflowPreprocessor
 ]
