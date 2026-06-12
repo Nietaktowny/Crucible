@@ -34,6 +34,8 @@ class FrameContext(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     
     df: pl.LazyFrame
+    preview: pl.DataFrame | None = None
+    row_count: int | None = None
 
     @computed_field
     @property

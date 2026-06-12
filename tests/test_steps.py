@@ -41,7 +41,8 @@ from crucible.steps import (
     UnpivotStep,
     WriteCsvStep,
     WriteExcelStep,
-    DropColumnsStep
+    DropColumnsStep,
+    InspectFrameStep
 )
 
 def test_change_column_type_casts_single_column_to_int32():
@@ -7385,7 +7386,6 @@ def test_write_excel_writes_dataframe_to_file(tmp_path):
         "name": ["A", "B"],
     }
 
-
 def test_write_excel_writes_selected_sheet(tmp_path):
     output_path = tmp_path / "output.xlsx"
 
@@ -7418,7 +7418,6 @@ def test_write_excel_writes_selected_sheet(tmp_path):
         "name": ["A"],
     }
 
-
 def test_write_excel_returns_original_lazyframe(tmp_path):
     output_path = tmp_path / "output.xlsx"
 
@@ -7442,7 +7441,6 @@ def test_write_excel_returns_original_lazyframe(tmp_path):
     assert result is not None
     assert isinstance(result, FrameContext)
     assert result.df is df
-
 
 def test_write_excel_creates_file_when_output_directory_exists(tmp_path):
     output_path = tmp_path / "result.xlsx"
@@ -7476,7 +7474,6 @@ def test_write_excel_rejects_missing_path_parameter():
                 parameters={},
             )
         )
-
 
 def test_write_excel_raises_when_data_is_none(tmp_path):
     output_path = tmp_path / "output.xlsx"
@@ -7518,7 +7515,6 @@ def test_drop_columns_drops_single_column():
         "name": ["A", "B"],
     }
 
-
 def test_drop_columns_drops_multiple_columns():
     df = pl.DataFrame(
         {
@@ -7545,7 +7541,6 @@ def test_drop_columns_drops_multiple_columns():
         "name": ["A"],
     }
 
-
 def test_drop_columns_preserves_remaining_column_order():
     df = pl.DataFrame(
         {
@@ -7569,7 +7564,6 @@ def test_drop_columns_preserves_remaining_column_order():
 
     assert result.columns == ["a", "c"]
 
-
 def test_drop_columns_can_drop_all_columns():
     df = pl.DataFrame(
         {
@@ -7591,7 +7585,6 @@ def test_drop_columns_can_drop_all_columns():
 
     assert result.columns == []
     assert result.shape == (0, 0)
-
 
 def test_drop_columns_returns_lazyframe():
     df = pl.DataFrame(
@@ -7615,7 +7608,6 @@ def test_drop_columns_returns_lazyframe():
     assert isinstance(result, FrameContext)
     assert isinstance(result.df, pl.LazyFrame)
 
-
 def test_drop_columns_rejects_missing_columns_parameter():
     with pytest.raises(ValidationError):
         DropColumnsStep(
@@ -7624,7 +7616,6 @@ def test_drop_columns_rejects_missing_columns_parameter():
                 parameters={},
             )
         )
-
 
 def test_drop_columns_raises_for_missing_dataframe_column():
     df = pl.DataFrame(
@@ -7644,3 +7635,175 @@ def test_drop_columns_raises_for_missing_dataframe_column():
 
     with pytest.raises(pl.exceptions.ColumnNotFoundError):
         step.execute(FrameContext(df=df)).df.collect()
+
+def test_inspect_frame_returns_original_lazyframe():
+    df = pl.DataFrame({"id": [1, 2]}).lazy()
+
+    step = InspectFrameStep(
+        StepConfig(
+            key="inspect_frame",
+            parameters={},
+        )
+    )
+
+    result = step.execute(FrameContext(df=df))
+
+    assert isinstance(result, FrameContext)
+    assert result.df is df
+    assert isinstance(result.df, pl.LazyFrame)
+
+def test_inspect_frame_creates_preview_with_default_limit():
+    df = pl.DataFrame({"id": list(range(600))}).lazy()
+
+    step = InspectFrameStep(
+        StepConfig(
+            key="inspect_frame",
+            parameters={},
+        )
+    )
+
+    result = step.execute(FrameContext(df=df))
+
+    assert isinstance(result.preview, pl.DataFrame)
+    assert result.preview.height == 500
+    assert result.preview["id"].to_list() == list(range(500))
+
+def test_inspect_frame_respects_custom_preview_limit():
+    df = pl.DataFrame({"id": [1, 2, 3, 4]}).lazy()
+
+    step = InspectFrameStep(
+        StepConfig(
+            key="inspect_frame",
+            parameters={
+                "preview_limit": 2,
+            },
+        )
+    )
+
+    result = step.execute(FrameContext(df=df))
+
+    assert result.preview.to_dict(as_series=False) == {
+        "id": [1, 2],
+    }
+
+def test_inspect_frame_sets_row_count():
+    df = pl.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "name": ["A", "B", "C"],
+        }
+    ).lazy()
+
+    step = InspectFrameStep(
+        StepConfig(
+            key="inspect_frame",
+            parameters={},
+        )
+    )
+
+    result = step.execute(FrameContext(df=df))
+
+    assert result.row_count == 3
+
+def test_inspect_frame_preview_keeps_columns_and_dtypes():
+    df = pl.DataFrame(
+        {
+            "id": [1, 2],
+            "name": ["A", "B"],
+        }
+    ).lazy()
+
+    step = InspectFrameStep(
+        StepConfig(
+            key="inspect_frame",
+            parameters={},
+        )
+    )
+
+    result = step.execute(FrameContext(df=df))
+
+    assert result.preview.columns == ["id", "name"]
+    assert result.preview.schema == {
+        "id": pl.Int64,
+        "name": pl.String,
+    }
+
+def test_inspect_frame_preview_limit_larger_than_dataframe_keeps_all_rows():
+    df = pl.DataFrame({"id": [1, 2]}).lazy()
+
+    step = InspectFrameStep(
+        StepConfig(
+            key="inspect_frame",
+            parameters={
+                "preview_limit": 10,
+            },
+        )
+    )
+
+    result = step.execute(FrameContext(df=df))
+
+    assert result.preview.to_dict(as_series=False) == {
+        "id": [1, 2],
+    }
+    assert result.row_count == 2
+
+def test_inspect_frame_preview_limit_zero_returns_empty_preview():
+    df = pl.DataFrame({"id": [1, 2]}).lazy()
+
+    step = InspectFrameStep(
+        StepConfig(
+            key="inspect_frame",
+            parameters={
+                "preview_limit": 0,
+            },
+        )
+    )
+
+    result = step.execute(FrameContext(df=df))
+
+    assert result.preview.height == 0
+    assert result.preview.columns == ["id"]
+    assert result.row_count == 2
+
+def test_inspect_frame_returns_empty_preview_for_empty_dataframe():
+    df = pl.DataFrame(
+        {
+            "id": [],
+        },
+        schema={"id": pl.Int64},
+    ).lazy()
+
+    step = InspectFrameStep(
+        StepConfig(
+            key="inspect_frame",
+            parameters={},
+        )
+    )
+
+    result = step.execute(FrameContext(df=df))
+
+    assert result.preview.height == 0
+    assert result.preview.columns == ["id"]
+    assert result.row_count == 0
+
+def test_inspect_frame_rejects_invalid_preview_limit_type():
+    with pytest.raises(ValidationError):
+        InspectFrameStep(
+            StepConfig(
+                key="inspect_frame",
+                parameters={
+                    "preview_limit": "ten",
+                },
+            )
+        )
+
+def test_inspect_frame_raises_when_data_is_none():
+    step = InspectFrameStep(
+        StepConfig(
+            key="inspect_frame",
+            parameters={},
+        )
+    )
+
+    with pytest.raises(AttributeError):
+        step.execute(None)

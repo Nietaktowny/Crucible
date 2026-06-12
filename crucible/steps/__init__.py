@@ -32,6 +32,7 @@ from crucible.steps.date_add import DateAddStep
 from crucible.steps.date_range_filter import DateRangeFilterStep
 from crucible.steps.date_period_filter import DatePeriodFilterStep
 from crucible.steps.drop_columns import DropColumnsStep
+from crucible.steps.inspect_frame import InspectFrameStep
 
 __all__ = [
     SelectColumnsStep,
@@ -67,5 +68,6 @@ __all__ = [
     DateAddStep,
     DateRangeFilterStep,
     DatePeriodFilterStep,
-    DropColumnsStep
+    DropColumnsStep,
+    InspectFrameStep
 ]
