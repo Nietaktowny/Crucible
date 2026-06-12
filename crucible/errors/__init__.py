@@ -1,6 +1,7 @@
 from crucible.errors._errors import (
     ColumnNotFoundError,
-    ColumnTypeMismatchError
+    ColumnTypeMismatchError,
+    InvalidWorkflowPlan
 )
 
 from crucible.errors.guards import (
@@ -12,6 +13,7 @@ from crucible.errors.guards import (
 __all__ = [
     ColumnNotFoundError,
     ColumnTypeMismatchError,
+    InvalidWorkflowPlan,
     ColumnsTypeGuard,
     MissingColumnsGuard,
     MissingFileGuard

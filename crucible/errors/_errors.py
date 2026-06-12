@@ -11,3 +11,6 @@ class ColumnNotFoundError(EngineError):
 class ColumnTypeMismatchError(EngineError):
     """Exception raised when trying to perform actions on column with data type not supporting this action"""
     
+
+class InvalidWorkflowPlan(EngineError):
+    """Error raised when workflow plan is invalid."""

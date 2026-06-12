@@ -21,4 +21,6 @@ def run_workflow(
         workflow_name=workflow_name,
         workflow_service=workflow_service,
         print_plan=request.print_plan,
+        preview_limit=request.preview_limit,
+        inspect=request.inspect,
     )

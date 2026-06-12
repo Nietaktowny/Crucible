@@ -29,7 +29,8 @@ class WorkflowResponse(BaseModel):
 
 class WorkflowRunRequest(BaseModel):
     print_plan: bool = False
-
+    preview_limit: int = 200
+    inspect: bool = True
 
 class WorkflowRunResponse(BaseModel):
     workflow_name: str
