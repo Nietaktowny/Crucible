@@ -7,12 +7,14 @@ from crucible.models import (
     StepExecutionContext,
     FrameContext,
     WorkflowRunResult,
-    WorkflowStatus
+    WorkflowStatus,
+    WorkflowErrorContext
 )
 
 logger = logging.getLogger(__name__)
 
-class WorkflowExecutor:    
+class WorkflowExecutor:
+     
     def run(self, workflow_execution_plan: WorkflowExecutionPlan) -> WorkflowRunResult:
         result = WorkflowRunResult(status=WorkflowStatus.RUNNING)
         data: FrameContext | None = None
@@ -28,8 +30,13 @@ class WorkflowExecutor:
                 step_execution_plan.status = StepStatus.SUCCESS
             except Exception as e:
                 step_execution_plan.status = StepStatus.FAILED
-                logger.error(f"Step {step.key} failed with error: {e}")
-                result.error = e
+                logger.error(f"Step '{step.key}' with name '{step.name}' failed with error: {e}")
+                result.error = WorkflowErrorContext(
+                    error=e,
+                    step_id=step.id,
+                    step_name=step.name,
+                    frame_schema=data.schema if data else None
+                )
                 result.status = WorkflowStatus.FAILED
                 break
             else:

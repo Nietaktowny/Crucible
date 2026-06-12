@@ -344,8 +344,8 @@ def test_run_returns_failed_workflow_result_when_step_fails() -> None:
 
     assert result.status == WorkflowStatus.FAILED
     assert result.success is False
-    assert isinstance(result.error, RuntimeError)
-    assert str(result.error) == "Test failure"
+    assert isinstance(result.error.error, RuntimeError)
+    assert str(result.error.error) == "Test failure"
 
     assert plan.steps_execution_plan[0].status == StepStatus.FAILED
     assert plan.steps_execution_plan[1].status == StepStatus.WAITING

@@ -26,8 +26,9 @@ class WorkflowRunService:
         if result.error is not None:
             raise WorkflowRunError(
                 workflow_name=workflow_name,
-                reason=str(result.error),
-            ) from result.error
+                step_name=result.error.step_name,
+                reason=str(result.error.error),
+            ) from result.error.error
 
         preview = (
             result.preview.to_dicts()

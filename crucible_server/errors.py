@@ -21,10 +21,10 @@ class WorkflowAlreadyExistsError(Exception):
 
 
 class WorkflowRunError(Exception):
-    def __init__(self, workflow_name: str, reason: str) -> None:
+    def __init__(self, workflow_name: str, step_name: str, reason: str) -> None:
         self.workflow_name = workflow_name
         self.reason = reason
-        super().__init__(f"Workflow run failed: {workflow_name}: {reason}")
+        super().__init__(f"Workflow run failed: {workflow_name}:{step_name} - {reason}")
 
 
 def register_exception_handlers(app: FastAPI) -> None:

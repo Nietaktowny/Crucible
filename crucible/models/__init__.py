@@ -15,7 +15,8 @@ from crucible.models._workflow import (
     WorkflowRunConfig,
     WorkflowRunResult,
     WorkflowRuntimeStatistics,
-    WorkflowStatus
+    WorkflowStatus,
+    WorkflowErrorContext
 )
 
 __all__ = [
@@ -32,5 +33,6 @@ __all__ = [
     WorkflowRunConfig,
     WorkflowRunResult,
     WorkflowRuntimeStatistics,
-    WorkflowStatus
+    WorkflowStatus,
+    WorkflowErrorContext
 ]

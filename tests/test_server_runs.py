@@ -41,6 +41,7 @@ class FakeRunService:
         if workflow_name == "broken":
             raise WorkflowRunError(
                 workflow_name=workflow_name,
+                step_name="broken_step",
                 reason="boom",
             )
 

@@ -141,7 +141,15 @@ class WorkflowRuntimeStatistics(BaseModel):
     started_at: datetime | None = None
     ended_at: datetime | None = None
     total_time: float = 0.0
+
+class WorkflowErrorContext(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     
+    error: Exception
+    step_id: str
+    step_name: str
+    frame_schema: dict[str, str] | None = None
+
 class WorkflowRunResult(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     
@@ -149,7 +157,7 @@ class WorkflowRunResult(BaseModel):
     status: WorkflowStatus = WorkflowStatus.CREATED
     preview: pl.DataFrame | None = None
     row_count: int | None = None
-    error: Exception | None = None
+    error: WorkflowErrorContext | None = None
     statistics: WorkflowRuntimeStatistics = Field(default_factory=WorkflowRuntimeStatistics)
     
     @computed_field
