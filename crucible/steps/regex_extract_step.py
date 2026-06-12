@@ -37,4 +37,4 @@ class RegexExtractStep(Step):
             )
             .alias(self.config.output_column)
         )
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)

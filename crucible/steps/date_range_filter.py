@@ -45,7 +45,7 @@ class DateRangeFilterStep(Step):
                 closed=self.config.closed,
             )
         )
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)
 
     def _parse_literal(self, value: str) -> date | datetime:
         match self.config.value_type:

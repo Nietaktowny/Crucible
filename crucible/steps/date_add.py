@@ -47,7 +47,7 @@ class DateAddStep(Step):
         ).alias(output_column)
 
         result = data.df.with_columns(expression)
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)
 
     def _build_duration(self) -> pl.Expr:
         match self.config.unit:

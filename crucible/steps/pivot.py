@@ -39,4 +39,4 @@ class PivotStep(Step):
             values=self.config.values,
             aggregate_function=self.config.aggregate_function,
         ).lazy()
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)

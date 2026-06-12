@@ -85,7 +85,7 @@ class DateDiffStep(Step):
         result = data.df.with_columns(
             self._convert_duration(duration_expr).alias(self.config.output_column)
         )
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)
 
     def _build_value_expression(
         self,

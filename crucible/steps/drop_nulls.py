@@ -28,4 +28,4 @@ class DropNullsStep(Step):
         result = data.df.drop_nulls(
             subset=self.config.columns,
         )
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)

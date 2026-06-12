@@ -29,4 +29,4 @@ class FillDownStep(Step):
         ]
 
         result = data.df.with_columns(expressions)
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)

@@ -48,7 +48,7 @@ class ParseDateTimeStep(Step):
         )
 
         result = data.df.with_columns(expression)
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)
 
     def _get_dtype(self) -> type[pl.Date] | type[pl.Datetime] | type[pl.Time]:
         match self.config.target_type:

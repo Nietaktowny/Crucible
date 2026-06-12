@@ -19,4 +19,4 @@ class SelectColumnsStep(Step):
     
     def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
         result = data.df.select(self.config.columns)
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)

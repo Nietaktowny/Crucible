@@ -27,4 +27,4 @@ class UnpivotStep(Step):
             variable_name=self.config.variable_name,
             value_name=self.config.value_name,
         )
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)

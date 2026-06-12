@@ -85,4 +85,4 @@ class GroupByStep(Step):
         ]
 
         result = data.df.group_by(self.config.by).agg(expressions)
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)

@@ -35,4 +35,4 @@ class ConcatStep(Step):
             frames,
             how=self.config.how,
         )
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)

@@ -63,4 +63,4 @@ class ReplaceValuesStep(Step):
         result = data.df.with_columns(
             expression.alias(self.config.column)
         )
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)

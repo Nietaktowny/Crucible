@@ -26,5 +26,5 @@ class LimitRowsStep(Step):
             result = data.df.tail(self.config.limit)
         else:
             raise ValueError(f"Unknown limit rows mode for LimitRowsStep, passed: {self.config.mode}. Expected one of: {['head', 'tail']}")
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)
             

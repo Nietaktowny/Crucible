@@ -17,4 +17,4 @@ class RenameColumnsStep(Step):
 
     def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
         result = data.df.rename(self.config.mapping)
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)

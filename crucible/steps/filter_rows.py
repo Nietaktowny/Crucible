@@ -24,4 +24,4 @@ class FilterRowsStep(Step):
         predicate = ConditionBuilder().build(self.config.condition)
 
         result = data.df.filter(predicate)
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)

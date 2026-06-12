@@ -45,7 +45,7 @@ class ExtractDateTimePartStep(Step):
         expression = self._build_expression().alias(output_column)
 
         result = data.df.with_columns(expression)
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)
 
     def _build_expression(self) -> pl.Expr:
         column = pl.col(self.config.column)

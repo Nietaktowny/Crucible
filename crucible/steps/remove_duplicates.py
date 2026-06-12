@@ -31,4 +31,4 @@ class RemoveDuplicatesStep(Step):
             subset=self.config.columns,
             keep=self.config.keep,
         )
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)

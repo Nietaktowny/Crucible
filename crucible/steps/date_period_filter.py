@@ -66,4 +66,4 @@ class DatePeriodFilterStep(Step):
                 )
 
         result = data.df.filter(condition)
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)

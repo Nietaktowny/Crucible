@@ -55,4 +55,4 @@ class SplitColumnStep(Step):
             columns_to_keep.append(self.config.column)
 
         result = result.drop(columns_to_keep)
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)

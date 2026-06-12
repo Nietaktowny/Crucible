@@ -64,4 +64,4 @@ class ChangeColumnTypeStep(Step):
             pl.col(col).cast(POLARS_TYPES.get(dtype))
             for col, dtype in self.config.column_types.items()
         ])
-        return FrameContext(df=result, schema=data.schema)
+        return FrameContext(df=result)
