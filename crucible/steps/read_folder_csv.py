@@ -69,7 +69,7 @@ class ReadFolderCsvStep(Step):
 
         result = pl.concat(
             frames,
-            how="diagonal",
+            how="diagonal_relaxed",
         )
 
         frame_context = FrameContext(df=result)

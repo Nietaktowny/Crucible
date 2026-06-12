@@ -67,7 +67,7 @@ class ReadFolderExcelStep(Step):
 
             frames.append(frame)
 
-        result = pl.concat(frames, how="vertical")
+        result = pl.concat(frames, how="diagonal_relaxed")
 
         frame_context = FrameContext(df=result)
 

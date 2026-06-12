@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from pathlib import Path
 
-from polars import pl
+import polars as pl
 
 from crucible.models import FrameContext
 from crucible.errors._errors import (
