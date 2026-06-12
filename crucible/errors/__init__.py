@@ -7,7 +7,8 @@ from crucible.errors._errors import (
 from crucible.errors.guards import (
     ColumnsTypeGuard,
     MissingColumnsGuard,
-    MissingFileGuard
+    MissingFileGuard,
+    LazyFrameInstanceGuard
 )
 
 __all__ = [
@@ -16,5 +17,6 @@ __all__ = [
     InvalidWorkflowPlan,
     ColumnsTypeGuard,
     MissingColumnsGuard,
-    MissingFileGuard
+    MissingFileGuard,
+    LazyFrameInstanceGuard
 ]

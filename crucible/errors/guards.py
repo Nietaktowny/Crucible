@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from pathlib import Path
 
+from polars import pl
+
 from crucible.models import FrameContext
 from crucible.errors._errors import (
     ColumnNotFoundError,
@@ -61,5 +63,11 @@ class MissingFileGuard(StepGuardBase):
             if self.path.is_dir():
                 raise FileNotFoundError(f"Directory under path '{self.path.absolute()}' doesn't exist!")
             else:
-                raise FileNotFoundError(f"File under path '{self.path.absolute()}' doesn't exist!")
-            
+                raise FileNotFoundError(f"File under path '{self.path.absolute()}' doesn't exist!")            
+class LazyFrameInstanceGuard(StepGuardBase):    
+    def __init__(self) -> None:
+        super().__init__()
+
+    def check(self, data: FrameContext) -> None:
+        if not isinstance(data.df, pl.LazyFrame):
+            raise ValueError(f"Data passed between steps has to be of LazyFrame type. Passed: '{type(data.df)}'")

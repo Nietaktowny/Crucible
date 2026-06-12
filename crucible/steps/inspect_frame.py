@@ -1,8 +1,8 @@
-from crucible.models import Step, FrameContext, StepGuardProtocol
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import StepExecutionContext
+from crucible.models import Step, FrameContext, StepGuardProtocol, StepExecutionContext
+from crucible.errors import LazyFrameInstanceGuard
 
 class InspectFrameConfig(BaseModel):
     preview_limit: int = 500
@@ -14,9 +14,9 @@ class InspectFrameStep(Step):
     config_model = InspectFrameConfig
     
     def guards(self) -> list[StepGuardProtocol]:
-        return []
+        return [LazyFrameInstanceGuard()]
     
-    def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
+    def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:        
         preview = data.df.limit(self.config.preview_limit).collect()
         row_count = data.df.select(pl.len()).collect().item()
         
