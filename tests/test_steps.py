@@ -40,7 +40,8 @@ from crucible.steps import (
     SplitColumnStep,
     UnpivotStep,
     WriteCsvStep,
-    WriteExcelStep
+    WriteExcelStep,
+    DropColumnsStep
 )
 
 def test_change_column_type_casts_single_column_to_int32():
@@ -7491,3 +7492,155 @@ def test_write_excel_raises_when_data_is_none(tmp_path):
 
     with pytest.raises(Exception):
         step.execute(None)
+        
+def test_drop_columns_drops_single_column():
+    df = pl.DataFrame(
+        {
+            "id": [1, 2],
+            "name": ["A", "B"],
+            "value": [10, 20],
+        }
+    ).lazy()
+
+    step = DropColumnsStep(
+        StepConfig(
+            key="drop_columns",
+            parameters={
+                "columns": ["value"],
+            },
+        )
+    )
+
+    result = step.execute(FrameContext(df=df)).df.collect()
+
+    assert result.to_dict(as_series=False) == {
+        "id": [1, 2],
+        "name": ["A", "B"],
+    }
+
+
+def test_drop_columns_drops_multiple_columns():
+    df = pl.DataFrame(
+        {
+            "id": [1],
+            "name": ["A"],
+            "value": [10],
+            "source": ["manual"],
+        }
+    ).lazy()
+
+    step = DropColumnsStep(
+        StepConfig(
+            key="drop_columns",
+            parameters={
+                "columns": ["value", "source"],
+            },
+        )
+    )
+
+    result = step.execute(FrameContext(df=df)).df.collect()
+
+    assert result.to_dict(as_series=False) == {
+        "id": [1],
+        "name": ["A"],
+    }
+
+
+def test_drop_columns_preserves_remaining_column_order():
+    df = pl.DataFrame(
+        {
+            "a": [1],
+            "b": [2],
+            "c": [3],
+            "d": [4],
+        }
+    ).lazy()
+
+    step = DropColumnsStep(
+        StepConfig(
+            key="drop_columns",
+            parameters={
+                "columns": ["b", "d"],
+            },
+        )
+    )
+
+    result = step.execute(FrameContext(df=df)).df.collect()
+
+    assert result.columns == ["a", "c"]
+
+
+def test_drop_columns_can_drop_all_columns():
+    df = pl.DataFrame(
+        {
+            "a": [1],
+            "b": [2],
+        }
+    ).lazy()
+
+    step = DropColumnsStep(
+        StepConfig(
+            key="drop_columns",
+            parameters={
+                "columns": ["a", "b"],
+            },
+        )
+    )
+
+    result = step.execute(FrameContext(df=df)).df.collect()
+
+    assert result.columns == []
+    assert result.shape == (0, 0)
+
+
+def test_drop_columns_returns_lazyframe():
+    df = pl.DataFrame(
+        {
+            "id": [1],
+            "name": ["A"],
+        }
+    ).lazy()
+
+    step = DropColumnsStep(
+        StepConfig(
+            key="drop_columns",
+            parameters={
+                "columns": ["name"],
+            },
+        )
+    )
+
+    result = step.execute(FrameContext(df=df))
+
+    assert isinstance(result, FrameContext)
+    assert isinstance(result.df, pl.LazyFrame)
+
+
+def test_drop_columns_rejects_missing_columns_parameter():
+    with pytest.raises(ValidationError):
+        DropColumnsStep(
+            StepConfig(
+                key="drop_columns",
+                parameters={},
+            )
+        )
+
+
+def test_drop_columns_raises_for_missing_dataframe_column():
+    df = pl.DataFrame(
+        {
+            "id": [1],
+        }
+    ).lazy()
+
+    step = DropColumnsStep(
+        StepConfig(
+            key="drop_columns",
+            parameters={
+                "columns": ["missing"],
+            },
+        )
+    )
+
+    with pytest.raises(pl.exceptions.ColumnNotFoundError):
+        step.execute(FrameContext(df=df)).df.collect()
