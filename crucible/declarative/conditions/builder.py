@@ -48,49 +48,37 @@ class ConditionBuilder:
             case "=":
                 self._require_right(condition)
                 return left == right
-
             case "!=":
                 self._require_right(condition)
                 return left != right
-
             case ">":
                 self._require_right(condition)
                 return left > right
-
             case ">=":
                 self._require_right(condition)
                 return left >= right
-
             case "<":
                 self._require_right(condition)
                 return left < right
-
             case "<=":
                 self._require_right(condition)
                 return left <= right
-
             case "contains":
                 self._require_right(condition)
                 return left.str.contains(right)
-
             case "starts_with":
                 self._require_right(condition)
                 return left.str.starts_with(right)
-
             case "ends_with":
                 self._require_right(condition)
                 return left.str.ends_with(right)
-
             case "is_null":
                 return left.is_null()
-
             case "is_not_null":
                 return left.is_not_null()
-
             case "is_in":
                 self._require_right(condition)
                 return left.is_in(right)
-
             case _:
                 raise ValueError(
                     f"Unsupported comparison operator: {condition.operator}"

@@ -32,19 +32,15 @@ class ExpressionBuilder:
             case "add":
                 self._require_args(expression, 2)
                 return args[0] + args[1]
-
             case "subtract":
                 self._require_args(expression, 2)
                 return args[0] - args[1]
-
             case "multiply":
                 self._require_args(expression, 2)
                 return args[0] * args[1]
-
             case "divide":
                 self._require_args(expression, 2)
                 return args[0] / args[1]
-
             case "safe_divide":
                 self._require_args(expression, 2)
                 return (
@@ -66,27 +62,21 @@ class ExpressionBuilder:
             case "abs":
                 self._require_args(expression, 1)
                 return args[0].abs()
-
             case "concat":
                 self._require_min_args(expression, 1)
                 return pl.concat_str(args, separator="")
-
             case "coalesce":
                 self._require_min_args(expression, 1)
                 return pl.coalesce(args)
-
             case "upper":
                 self._require_args(expression, 1)
                 return args[0].str.to_uppercase()
-
             case "lower":
                 self._require_args(expression, 1)
                 return args[0].str.to_lowercase()
-
             case "trim":
                 self._require_args(expression, 1)
                 return args[0].str.strip_chars()
-
             case _:
                 raise ValueError(
                     f"Unsupported expression operation: {expression.op}"
