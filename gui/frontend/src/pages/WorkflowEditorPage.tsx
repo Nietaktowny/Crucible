@@ -352,7 +352,6 @@ export default function WorkflowEditorPage() {
     });
 
     setSelectedStepId(newStep.id);
-    setRunResult(null);
   }
 
   function updateSelectedStepParameters(field: string, value: unknown) {
@@ -372,8 +371,6 @@ export default function WorkflowEditorPage() {
           : step,
       ),
     }));
-
-    setRunResult(null);
   }
 
   function updateSelectedStepMetadata(
@@ -393,8 +390,6 @@ export default function WorkflowEditorPage() {
           : step,
       ),
     }));
-
-    setRunResult(null);
   }
 
   function updateSelectedStepSources(sources: WorkflowSourceStep[]) {
@@ -411,8 +406,6 @@ export default function WorkflowEditorPage() {
           : step,
       ),
     }));
-
-    setRunResult(null);
   }
 
   function removeStep(stepId: string) {
@@ -424,8 +417,6 @@ export default function WorkflowEditorPage() {
     if (selectedStepId === stepId) {
       setSelectedStepId(null);
     }
-
-    setRunResult(null);
   }
 
   function removeSelectedStep() {
@@ -488,7 +479,6 @@ export default function WorkflowEditorPage() {
                 ...current,
                 name: event.target.value,
               }));
-              setRunResult(null);
             }}
           />
 

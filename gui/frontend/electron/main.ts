@@ -4,6 +4,9 @@ import {
   dialog,
   ipcMain,
   globalShortcut,
+  type IpcMainInvokeEvent,
+  type OpenDialogOptions,
+  type OpenDialogReturnValue,
 } from "electron";
 import { spawn, ChildProcess } from "node:child_process";
 import path from "node:path";
@@ -21,25 +24,28 @@ const BACKEND_BASE_URL = `http://${BACKEND_HOST}:${BACKEND_PORT}`;
 let backend: ChildProcess | null = null;
 let mainWindow: BrowserWindow | null = null;
 
+async function showOpenDialogForEvent(
+  event: IpcMainInvokeEvent,
+  options: OpenDialogOptions,
+): Promise<OpenDialogReturnValue> {
+  const win = BrowserWindow.fromWebContents(event.sender);
+
+  if (win) {
+    return dialog.showOpenDialog(win, options);
+  }
+
+  return dialog.showOpenDialog(options);
+}
+
 function registerIpcHandlers() {
   ipcMain.handle("crucible:select-file-path", async (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-
-    const result = await dialog.showOpenDialog(win ?? undefined, {
+    const result = await showOpenDialogForEvent(event, {
       title: "Select file",
       properties: ["openFile"],
       filters: [
         {
           name: "Supported files",
-          extensions: [
-            "csv",
-            "xlsx",
-            "xls",
-            "json",
-            "parquet",
-            "yaml",
-            "yml",
-          ],
+          extensions: ["csv", "xlsx", "xls", "json", "parquet", "yaml", "yml"],
         },
         {
           name: "All files",
@@ -48,26 +54,20 @@ function registerIpcHandlers() {
       ],
     });
 
-    if (result.canceled || result.filePaths.length === 0) {
-      return null;
-    }
-
-    return result.filePaths[0];
+    return result.canceled || result.filePaths.length === 0
+      ? null
+      : result.filePaths[0];
   });
 
   ipcMain.handle("crucible:select-directory-path", async (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-
-    const result = await dialog.showOpenDialog(win ?? undefined, {
+    const result = await showOpenDialogForEvent(event, {
       title: "Select folder",
       properties: ["openDirectory"],
     });
 
-    if (result.canceled || result.filePaths.length === 0) {
-      return null;
-    }
-
-    return result.filePaths[0];
+    return result.canceled || result.filePaths.length === 0
+      ? null
+      : result.filePaths[0];
   });
 }
 
@@ -80,36 +80,15 @@ function getPackagedBackendPath() {
 }
 
 function startBackend() {
-  if (backend) {
+  if (backend || isDev) {
     return;
   }
 
-  if (isDev) {
-    backend = spawn(
-      "python",
-      [
-        "-m",
-        "uvicorn",
-        "crucible_server.app:create_app",
-        "--factory",
-        "--reload",
-        "--host",
-        BACKEND_HOST,
-        "--port",
-        BACKEND_PORT,
-      ],
-      {
-        shell: true,
-        stdio: "inherit",
-      },
-    );
-  } else {
-    backend = spawn(getPackagedBackendPath(), [], {
-      shell: false,
-      stdio: "ignore",
-      windowsHide: true,
-    });
-  }
+  backend = spawn(getPackagedBackendPath(), [], {
+    shell: false,
+    stdio: "ignore",
+    windowsHide: true,
+  });
 
   backend.on("error", (error) => {
     console.error("Failed to start backend:", error);
