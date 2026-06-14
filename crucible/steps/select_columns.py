@@ -1,5 +1,5 @@
 from crucible.models import Step, FrameContext, StepGuardProtocol
-from crucible.errors import MissingColumnsGuard
+from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
 import polars as pl
 from pydantic import BaseModel
 
@@ -15,7 +15,10 @@ class SelectColumnsStep(Step):
     config_model = SelectColumnsConfig
     
     def guards(self) -> list[StepGuardProtocol]:
-        return [MissingColumnsGuard(self.config.columns)]
+        return [
+            LazyFrameInstanceGuard(),
+            MissingColumnsGuard(self.config.columns)
+        ]
     
     def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
         result = data.df.select(self.config.columns)

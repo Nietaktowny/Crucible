@@ -4,7 +4,7 @@ import polars as pl
 from pydantic import BaseModel
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
-from crucible.errors import MissingColumnsGuard
+from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
 
 
 class AggregationConfig(BaseModel):
@@ -40,7 +40,10 @@ class GroupByStep(Step):
         for agg in self.config.aggregations:
             if agg.function != "len":  # 'len' doesn't require a column
                 columns_to_check.append(agg.column)
-        return [MissingColumnsGuard(columns_to_check)]
+        return [
+            LazyFrameInstanceGuard(),
+            MissingColumnsGuard(columns_to_check),
+        ]
 
     def _build_aggregation(self, aggregation: AggregationConfig) -> pl.Expr:
         column = pl.col(aggregation.column)

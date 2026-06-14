@@ -22,9 +22,10 @@ class MissingColumnsGuard(StepGuardBase):
         self.columns = columns
 
     def check(self, data: FrameContext) -> None:
-        missing = [column for column in self.columns if column not in data.schema.keys()]
-        if missing:
-            raise ColumnNotFoundError(f"Column or columns not found in data schema: {missing}. Available columns: {list(data.schema.keys())}")
+        if data is not None and data.schema is not None:
+            missing = [column for column in self.columns if column not in data.schema.keys()]
+            if missing:
+                raise ColumnNotFoundError(f"Column or columns not found in data schema: {missing}. Available columns: {list(data.schema.keys())}")
 class ColumnsTypeGuard(StepGuardBase):
     def __init__(self, schema: dict[str, str | Sequence[str]]) -> None:
         super().__init__()
@@ -69,5 +70,7 @@ class LazyFrameInstanceGuard(StepGuardBase):
         super().__init__()
 
     def check(self, data: FrameContext) -> None:
-        if not isinstance(data.df, pl.LazyFrame):
-            raise ValueError(f"Data passed between steps has to be of LazyFrame type. Passed: '{type(data.df)}'")
+        if data is None:
+            raise ValueError(f"FrameContext for this step cannot be null.'")
+        if data is not None and not isinstance(data.df, pl.LazyFrame):
+            raise ValueError(f"Data expected by step has to be of LazyFrame type. Passed: '{type(data.df)}'")

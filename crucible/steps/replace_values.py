@@ -3,6 +3,7 @@ from typing import Any
 import polars as pl
 from pydantic import BaseModel, model_validator
 
+from crucible.errors.guards import LazyFrameInstanceGuard
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
 from crucible.errors import MissingColumnsGuard
 
@@ -38,7 +39,10 @@ class ReplaceValuesStep(Step):
     config_model = ReplaceValuesConfig
 
     def guards(self) -> list[StepGuardProtocol]:
-        return [MissingColumnsGuard([self.config.column])]
+        return [
+            LazyFrameInstanceGuard(),
+            MissingColumnsGuard([self.config.column]),
+        ]
 
     def execute(
         self,

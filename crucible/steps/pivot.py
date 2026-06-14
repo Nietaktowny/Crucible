@@ -2,7 +2,7 @@
 from typing import Literal
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
-from crucible.errors import MissingColumnsGuard
+from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
 
 import polars as pl
 from pydantic import BaseModel
@@ -30,7 +30,10 @@ class PivotStep(Step):
 
     def guards(self) -> list[StepGuardProtocol]:
         all_columns = self.config.on + self.config.index + self.config.values
-        return [MissingColumnsGuard(all_columns)]
+        return [
+            LazyFrameInstanceGuard(),
+            MissingColumnsGuard(all_columns),
+        ]
 
     def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
         result = data.df.collect().pivot(

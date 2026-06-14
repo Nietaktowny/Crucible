@@ -1,7 +1,7 @@
 from typing import Literal
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
-from crucible.errors import MissingColumnsGuard
+from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
 
 import polars as pl
 from pydantic import BaseModel
@@ -19,8 +19,11 @@ class RemoveDuplicatesStep(Step):
 
     def guards(self) -> list[StepGuardProtocol]:
         if self.config.columns:
-            return [MissingColumnsGuard(self.config.columns)]
-        return []
+            return [
+                LazyFrameInstanceGuard(),
+                MissingColumnsGuard(self.config.columns),
+            ]
+        return [LazyFrameInstanceGuard()]
 
     def execute(
         self,

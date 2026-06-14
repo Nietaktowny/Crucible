@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
-from crucible.errors import MissingColumnsGuard
+from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
 
 class ReorderColumnsConfig(BaseModel):
     columns: list[str]
@@ -14,7 +14,10 @@ class ReorderColumnsStep(Step):
     config_model = ReorderColumnsConfig
 
     def guards(self) -> list[StepGuardProtocol]:
-        return [MissingColumnsGuard(self.config.columns)]
+        return [
+            LazyFrameInstanceGuard(),
+            MissingColumnsGuard(self.config.columns),
+        ]
 
     def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
         result = data.df.select(self.config.columns)

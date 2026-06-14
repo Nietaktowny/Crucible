@@ -4,7 +4,7 @@ import polars as pl
 from pydantic import BaseModel
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
-from crucible.errors import MissingColumnsGuard
+from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
 
 class SortColumnConfig(BaseModel):
     name: str
@@ -21,7 +21,10 @@ class SortRowsStep(Step):
 
     def guards(self) -> list[StepGuardProtocol]:
         sort_columns = [column.name for column in self.config.columns]
-        return [MissingColumnsGuard(sort_columns)]
+        return [
+            LazyFrameInstanceGuard(),
+            MissingColumnsGuard(sort_columns),
+        ]
 
     def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
         by = [column.name for column in self.config.columns]

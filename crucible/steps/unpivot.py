@@ -2,7 +2,7 @@ import polars as pl
 from pydantic import BaseModel
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
-from crucible.errors import MissingColumnsGuard
+from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
 
 class UnpivotConfig(BaseModel):
     on: list[str]
@@ -18,7 +18,10 @@ class UnpivotStep(Step):
 
     def guards(self) -> list[StepGuardProtocol]:
         all_columns = self.config.on + self.config.index
-        return [MissingColumnsGuard(all_columns)]
+        return [
+            LazyFrameInstanceGuard(),
+            MissingColumnsGuard(all_columns),
+        ]
 
     def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:
         result = data.df.unpivot(

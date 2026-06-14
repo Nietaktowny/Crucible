@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from crucible.declarative import Condition, ConditionBuilder
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import LazyFrameInstanceGuard
 
 class FilterRowsConfig(BaseModel):
     condition: Condition
@@ -14,7 +15,7 @@ class FilterRowsStep(Step):
     config_model = FilterRowsConfig
 
     def guards(self) -> list[StepGuardProtocol]:
-        return []
+        return [LazyFrameInstanceGuard()]
 
     def execute(
         self,

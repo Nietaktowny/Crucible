@@ -2,7 +2,8 @@ from typing import Literal
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
 from crucible.errors import (
-    MissingColumnsGuard
+    MissingColumnsGuard,
+    LazyFrameInstanceGuard
 )
 
 import polars as pl
@@ -56,7 +57,8 @@ class ChangeColumnTypeStep(Step):
 
     def guards(self) -> list[StepGuardProtocol]:
         return [
-            MissingColumnsGuard(self.config.column_types.keys())
+            LazyFrameInstanceGuard(),
+            MissingColumnsGuard(self.config.column_types.keys()),
         ]
 
     def execute(self, data: FrameContext, context: StepExecutionContext = None) -> FrameContext:

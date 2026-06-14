@@ -1,6 +1,7 @@
 from typing import Literal, Any
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import LazyFrameInstanceGuard
 
 import polars as pl
 from pydantic import BaseModel, computed_field
@@ -17,7 +18,7 @@ class ConcatStep(Step):
     config_model = ConcatConfig
 
     def guards(self) -> list[StepGuardProtocol]:
-        return []
+        return [LazyFrameInstanceGuard()]
 
     def execute(self, data: FrameContext, context: StepExecutionContext | None = None) -> FrameContext:
         extra_inputs = list(context.extra_inputs.values())

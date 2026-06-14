@@ -40,11 +40,13 @@ class FrameContext(BaseModel):
 
     @computed_field
     @property
-    def schema(self) -> dict[str, str]:
-        return {
-            name: str(dtype)
-            for name, dtype in self.df.collect_schema().items()
-        }
+    def schema(self) -> dict[str, str] | None:
+        if isinstance(self.df, pl.LazyFrame):
+            return {
+                name: str(dtype)
+                for name, dtype in self.df.collect_schema().items()
+            }
+        return None
         
     def collect(self) -> pl.DataFrame:
         return self.df.collect()

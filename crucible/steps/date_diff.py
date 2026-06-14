@@ -4,7 +4,7 @@ import polars as pl
 from pydantic import BaseModel, model_validator
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
-from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard
+from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInstanceGuard
 
 
 class DateDiffConfig(BaseModel):
@@ -60,6 +60,7 @@ class DateDiffStep(Step):
         guards: list[StepGuardProtocol] = []
         if columns_to_check:
             guards.extend([
+                LazyFrameInstanceGuard(),
                 MissingColumnsGuard(list(columns_to_check.keys())),
                 ColumnsTypeGuard(columns_to_check),
             ])

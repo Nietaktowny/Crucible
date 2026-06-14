@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from crucible.io import CsvIOManager
 from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.errors import LazyFrameInstanceGuard
 
 import polars as pl
 
@@ -22,7 +23,7 @@ class WriteCsvStep(Step):
         self.io_manager = CsvIOManager(self.config.path, self.config.separator)
 
     def guards(self) -> list[StepGuardProtocol]:
-        return []
+        return [LazyFrameInstanceGuard()]
 
     def execute(self, data: FrameContext | None = None, context: StepExecutionContext = None) -> FrameContext:
         self.io_manager.write(data.df)

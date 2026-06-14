@@ -4,7 +4,7 @@ import polars as pl
 from pydantic import BaseModel
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
-from crucible.errors import MissingColumnsGuard
+from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
 
 
 class FillNullsConfig(BaseModel):
@@ -19,7 +19,10 @@ class FillNullsStep(Step):
     config_model = FillNullsConfig
 
     def guards(self) -> list[StepGuardProtocol]:
-        return [MissingColumnsGuard(self.config.columns)]
+        return [
+            LazyFrameInstanceGuard(),
+            MissingColumnsGuard(self.config.columns),
+        ]
 
     def execute(
         self,

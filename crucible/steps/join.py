@@ -4,7 +4,7 @@ import polars as pl
 from pydantic import BaseModel
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
-from crucible.errors import MissingColumnsGuard
+from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
 
 class JoinConfig(BaseModel):
     left_on: str | list[str]
@@ -25,7 +25,10 @@ class JoinStep(Step):
             columns_to_check.extend(self.config.left_on)
         else:
             columns_to_check.append(self.config.left_on)
-        return [MissingColumnsGuard(columns_to_check)]
+        return [
+            LazyFrameInstanceGuard(),
+            MissingColumnsGuard(columns_to_check),
+        ]
 
     def execute(
         self,

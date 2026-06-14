@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from typing import Literal
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
-from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard
+from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInstanceGuard
 
 
 class DatePeriodFilterConfig(BaseModel):
@@ -26,6 +26,7 @@ class DatePeriodFilterStep(Step):
 
     def guards(self) -> list[StepGuardProtocol]:
         return [
+            LazyFrameInstanceGuard(),
             MissingColumnsGuard([self.config.column]),
             ColumnsTypeGuard({self.config.column: ["Date", "Datetime"]}),
         ]

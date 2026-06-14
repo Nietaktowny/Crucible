@@ -4,7 +4,7 @@ import polars as pl
 from pydantic import BaseModel
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
-from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard
+from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInstanceGuard
 
 
 class ExtractDateTimePartConfig(BaseModel):
@@ -31,6 +31,7 @@ class ExtractDateTimePartStep(Step):
 
     def guards(self) -> list[StepGuardProtocol]:
         return [
+            LazyFrameInstanceGuard(),
             MissingColumnsGuard([self.config.column]),
             ColumnsTypeGuard({self.config.column: ["Date", "Datetime", "Time"]}),
         ]
