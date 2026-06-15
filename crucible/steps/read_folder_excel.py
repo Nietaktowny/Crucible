@@ -22,6 +22,8 @@ class ReadFolderExcelConfig(BaseModel):
 
     context_store: bool = False
     context_key: str | None = None
+    
+    columns: list[str] | None = None
 
 
 class ReadFolderExcelStep(Step):
@@ -51,7 +53,7 @@ class ReadFolderExcelStep(Step):
         for file in files:
             try:
                 io_manager = ExcelIOManager(file, self.config.sheet)
-                frame = io_manager.read()
+                frame = io_manager.read(columns=self.config.columns)
             except Exception as e:
                 continue
 

@@ -55,14 +55,13 @@ class WorkflowRunner:
 
         workflow = self.loader.load(workflow_path)
         workflow = self.preprocessor.preprocess(workflow, config=config)
+        workflow = self.compiler.compile(workflow, config=config)
         workflow = self.optimizer.optimize(workflow, config=config)
 
-        execution_plan = self.compiler.compile(workflow, config=config)
-
         if print_plan:
-            self.compiler.print_execution_plan(execution_plan)
+            self.compiler.print_execution_plan(workflow)
 
-        return self.executor.run(execution_plan)
+        return self.executor.run(workflow)
 
 
 def run_workflow(

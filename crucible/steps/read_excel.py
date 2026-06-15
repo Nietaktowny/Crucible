@@ -13,6 +13,7 @@ class ReadExcelConfig(BaseModel):
     sheet: str | None = None
     context_store: bool = False
     context_key: str | None = None
+    columns: list[str] | None = None
 
 class ReadExcelStep(Step):
     key = "read_excel"
@@ -28,7 +29,7 @@ class ReadExcelStep(Step):
         return [MissingFileGuard(self.config.path)]
 
     def execute(self, data: FrameContext | None = None, context: StepExecutionContext = None) -> FrameContext:
-        df =  self.io_manager.read()
+        df =  self.io_manager.read(columns=self.config.columns)
         frame_context = FrameContext(df=df)
         if context is not None and self.config.context_store is True:
             context.extra_inputs[self.config.context_key] = frame_context

@@ -20,6 +20,7 @@ class WorkflowExecutor:
         data: FrameContext | None = None
         context = StepExecutionContext()
         result.statistics.started_at = datetime.now(UTC)
+        logger.debug(f"Applied optimizations: {workflow_execution_plan.applied_optimizations}")
         for step_execution_plan in workflow_execution_plan.steps_execution_plan:
             step = step_execution_plan.step            
             try:

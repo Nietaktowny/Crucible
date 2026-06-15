@@ -124,6 +124,7 @@ class WorkflowExecutionPlan(BaseModel):
     
     workflow: Workflow
     steps_execution_plan: list[StepExecutionPlan]
+    applied_optimizations: list[str] = Field(default_factory=list)
     
 class WorkflowRunConfig(BaseModel):
     inspect: bool = False

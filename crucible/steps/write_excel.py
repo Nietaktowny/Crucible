@@ -11,6 +11,7 @@ import polars as pl
 class WriteExcelConfig(BaseModel):
     path: Path
     sheet: str | None = None
+    table_style: str = "Table Style Medium 1"
 
 class WriteExcelStep(Step):
     key = "write_excel"
@@ -26,5 +27,5 @@ class WriteExcelStep(Step):
         return [LazyFrameInstanceGuard()]
 
     def execute(self, data: FrameContext | None = None, context: StepExecutionContext = None) -> FrameContext:
-        self.io_manager.write(data.df)
+        self.io_manager.write(data.df, table_style=self.config.table_style)
         return data

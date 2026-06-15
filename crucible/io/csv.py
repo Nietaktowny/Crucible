@@ -12,8 +12,9 @@ class CsvIOManager(IOManager):
         self.separator =  separator
         self.infer_types = infer_types
         
-    def read(self) -> pl.LazyFrame:
+    def read(self, columns: list[str] | None = None) -> pl.LazyFrame:
         return pl.scan_csv(self.path, separator=self.separator, infer_schema=self.infer_types)
+    
     def write(self, data: pl.LazyFrame) -> int:
         df = data.collect()
         self.path.parent.mkdir(parents=True, exist_ok=True)
