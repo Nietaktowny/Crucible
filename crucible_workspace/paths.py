@@ -9,3 +9,6 @@ def get_workspace_dir() -> Path:
 
 def get_workflows_dir() -> Path:
     return get_workspace_dir() / "workflows"
+
+def get_runtime_data_dir() -> Path:
+    return get_workspace_dir() / "runtime"
