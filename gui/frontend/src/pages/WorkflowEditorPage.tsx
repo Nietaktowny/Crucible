@@ -18,6 +18,7 @@ import {
 } from "@/features/workflow/types";
 import {
   createWorkflow,
+  getCachedPreview,
   getWorkflow,
   listWorkflows,
   runWorkflow,
@@ -185,6 +186,25 @@ export default function WorkflowEditorPage() {
     setServerWorkflows(result.workflows);
   }
 
+  async function loadCachedPreviewForWorkflow(name: string) {
+    const cachedPreview = await getCachedPreview(name);
+
+    if (!cachedPreview) {
+      setRunResult(null);
+      return false;
+    }
+
+    setRunResult({
+      workflow_name: name,
+      success: true,
+      message: "Loaded cached preview.",
+      preview: cachedPreview.data,
+      row_count: cachedPreview.row_count,
+    });
+
+    return true;
+  }
+
   async function loadWorkflowFromServer(name: string) {
     setErrorMessage(null);
     setErrorDetails(undefined);
@@ -198,7 +218,14 @@ export default function WorkflowEditorPage() {
     setSelectedServerWorkflow(result.name);
     setIsLinkedToServer(true);
     setSelectedStepId(loadedWorkflow.steps[0]?.id ?? null);
-    setStatus(`Loaded ${result.name}`);
+
+    const hasCachedPreview = await loadCachedPreviewForWorkflow(result.name);
+
+    setStatus(
+      hasCachedPreview
+        ? `Loaded ${result.name} with cached preview.`
+        : `Loaded ${result.name}. No cached preview.`,
+    );
   }
 
   async function handleServerWorkflowChange(name: string) {
@@ -227,12 +254,13 @@ export default function WorkflowEditorPage() {
   async function saveWorkflowToServer() {
     setErrorMessage(null);
     setErrorDetails(undefined);
+    setRunResult(null);
 
     const content = workflowToYaml(workflow);
 
     if (isLinkedToServer && selectedServerWorkflow) {
       await updateWorkflow(selectedServerWorkflow, content);
-      setStatus(`Saved ${selectedServerWorkflow}`);
+      setStatus(`Saved ${selectedServerWorkflow}. Run workflow to refresh preview.`);
       return;
     }
 
@@ -242,7 +270,7 @@ export default function WorkflowEditorPage() {
     setIsLinkedToServer(true);
     await refreshServerWorkflows();
 
-    setStatus(`Created ${result.name}`);
+    setStatus(`Created ${result.name}. Run workflow to create preview.`);
   }
 
   async function runSelectedWorkflow() {

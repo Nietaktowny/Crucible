@@ -23,6 +23,14 @@ export type WorkflowRunResponse = {
   row_count: number | null;
 };
 
+export type CachedPreview = {
+  data: PreviewRow[];
+  schema: Record<string, unknown>;
+  row_count: number;
+  preview_limit: number;
+  stored_at: string;
+};
+
 const API_BASE_URL =
   import.meta.env.VITE_CRUCIBLE_API_URL ?? "http://127.0.0.1:8000/api/v1";
 
@@ -50,6 +58,38 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   if (response.status === 204) {
     return undefined as T;
+  }
+
+  return response.json() as Promise<T>;
+}
+
+async function requestNullable<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T | null> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers ?? {}),
+    },
+    ...options,
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    let message = `Request failed: ${response.status}`;
+
+    try {
+      const body = await response.json();
+      message = body.message ?? body.detail ?? message;
+    } catch {
+      // Ignore non-JSON response.
+    }
+
+    throw new Error(message);
   }
 
   return response.json() as Promise<T>;
@@ -105,5 +145,13 @@ export function runWorkflow(
         preview_limit: previewLimit,
       }),
     },
+  );
+}
+
+export function getCachedPreview(
+  name: string,
+): Promise<CachedPreview | null> {
+  return requestNullable<CachedPreview>(
+    `/data/workflows/${encodeURIComponent(name)}/preview`,
   );
 }
