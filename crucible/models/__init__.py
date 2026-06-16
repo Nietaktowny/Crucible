@@ -19,6 +19,10 @@ from crucible.models._workflow import (
     WorkflowErrorContext
 )
 
+from crucible.models._types import (
+    ColumnName
+)
+
 __all__ = [
     Workflow,
     IOConfig,
@@ -34,5 +38,7 @@ __all__ = [
     WorkflowRunResult,
     WorkflowRuntimeStatistics,
     WorkflowStatus,
-    WorkflowErrorContext
+    WorkflowErrorContext,
+    
+    ColumnName
 ]

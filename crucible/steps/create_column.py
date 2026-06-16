@@ -2,11 +2,11 @@ import polars as pl
 from pydantic import BaseModel
 
 from crucible.declarative import Expression, ExpressionBuilder
-from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import LazyFrameInstanceGuard
 
 class CreateColumnConfig(BaseModel):
-    name: str
+    name: ColumnName
     expr: Expression
 
 

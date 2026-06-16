@@ -3,12 +3,12 @@ from typing import Any
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
 
 
 class FillNullsConfig(BaseModel):
-    columns: list[str]
+    columns: list[ColumnName]
     value: Any
 
 

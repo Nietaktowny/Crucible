@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from crucible.io import ExcelIOManager
 from crucible.errors import MissingFileGuard
-from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 
 import polars as pl
 
@@ -13,7 +13,7 @@ class ReadExcelConfig(BaseModel):
     sheet: str | None = None
     context_store: bool = False
     context_key: str | None = None
-    columns: list[str] | None = None
+    columns: list[ColumnName] | None = None
 
 class ReadExcelStep(Step):
     key = "read_excel"

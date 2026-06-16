@@ -3,16 +3,16 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInstanceGuard
 
 
 class ParseDateTimeConfig(BaseModel):
-    column: str
+    column: ColumnName
     target_type: Literal["date", "datetime", "time"]
 
     format: str | None = None
-    output_column: str | None = None
+    output_column: ColumnName | None = None
 
     strict: bool = False
 

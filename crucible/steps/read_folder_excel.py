@@ -4,7 +4,7 @@ import polars as pl
 from pydantic import BaseModel
 
 from crucible.io import ExcelIOManager
-from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingFileGuard
 
 
@@ -23,7 +23,7 @@ class ReadFolderExcelConfig(BaseModel):
     context_store: bool = False
     context_key: str | None = None
     
-    columns: list[str] | None = None
+    columns: list[ColumnName] | None = None
 
 
 class ReadFolderExcelStep(Step):

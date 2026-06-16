@@ -1,11 +1,11 @@
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
 
 
 class DropColumnsConfig(BaseModel):
-    columns: list[str]
+    columns: list[ColumnName]
 
 
 class DropColumnsStep(Step):

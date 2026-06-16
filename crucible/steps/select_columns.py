@@ -1,4 +1,4 @@
-from crucible.models import Step, FrameContext, StepGuardProtocol
+from crucible.models import Step, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
 import polars as pl
 from pydantic import BaseModel
@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from crucible.models import StepExecutionContext
 
 class SelectColumnsConfig(BaseModel):
-    columns: list[str]
+    columns: list[ColumnName]
 
 class SelectColumnsStep(Step):
     key = "select_columns"

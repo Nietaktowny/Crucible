@@ -1,12 +1,15 @@
-from typing import Literal, Any
+from typing import Literal
 
-from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import (
+    Step,
+    StepExecutionContext,
+    FrameContext,
+    StepGuardProtocol
+)
 from crucible.errors import LazyFrameInstanceGuard
 
 import polars as pl
-from pydantic import BaseModel, computed_field
-
-from rich.pretty import pprint
+from pydantic import BaseModel
 
 class ConcatConfig(BaseModel):
     how: Literal["vertical", "diagonal", "horizontal"] = "vertical"

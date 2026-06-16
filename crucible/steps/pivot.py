@@ -1,16 +1,16 @@
 
 from typing import Literal
 
-from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
 
 import polars as pl
 from pydantic import BaseModel
 
 class PivotConfig(BaseModel):
-    on: list[str]
-    index: list[str]
-    values: list[str]
+    on: list[ColumnName]
+    index: list[ColumnName]
+    values: list[ColumnName]
     aggregate_function: Literal[
         'first',
         'last',

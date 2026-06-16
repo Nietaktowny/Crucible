@@ -4,6 +4,8 @@ from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, Field
 
+from crucible.models import ColumnName
+
 
 ExpressionOperation = Literal[
     "add",
@@ -22,7 +24,7 @@ ExpressionOperation = Literal[
 
 
 class ColumnExpression(BaseModel):
-    column: str
+    column: ColumnName
 
 
 class ValueExpression(BaseModel):

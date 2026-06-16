@@ -3,12 +3,12 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInstanceGuard
 
 
 class DateAddConfig(BaseModel):
-    column: str
+    column: ColumnName
 
     value: int
     unit: Literal[
@@ -19,7 +19,7 @@ class DateAddConfig(BaseModel):
         "milliseconds",
     ] = "days"
 
-    output_column: str | None = None
+    output_column: ColumnName | None = None
 
 
 class DateAddStep(Step):

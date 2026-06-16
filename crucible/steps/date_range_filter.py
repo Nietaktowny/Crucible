@@ -4,12 +4,12 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel, model_validator
 
-from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInstanceGuard
 
 
 class DateRangeFilterConfig(BaseModel):
-    column: str
+    column: ColumnName
 
     start: str
     end: str

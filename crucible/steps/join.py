@@ -3,12 +3,12 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
 
 class JoinConfig(BaseModel):
-    left_on: str | list[str]
-    right_on: str | list[str]
+    left_on: ColumnName | list[ColumnName]
+    right_on: ColumnName | list[ColumnName]
     how: Literal["left", "inner", "right", "full", "anti", "cross"] = "left"
 
 class JoinStep(Step):

@@ -1,11 +1,11 @@
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
 
 class RenameColumnsConfig(BaseModel):
-    mapping: dict[str, str]
+    mapping: dict[ColumnName, ColumnName]
 class RenameColumnsStep(Step):
     key = "rename_columns"
     name = "Rename Columns"

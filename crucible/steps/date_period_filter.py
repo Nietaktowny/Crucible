@@ -4,12 +4,12 @@ import polars as pl
 from pydantic import BaseModel
 from typing import Literal
 
-from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInstanceGuard
 
 
 class DatePeriodFilterConfig(BaseModel):
-    column: str
+    column: ColumnName
 
     period: Literal[
         "current_year",

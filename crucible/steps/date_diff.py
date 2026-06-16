@@ -3,13 +3,13 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel, model_validator
 
-from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInstanceGuard
 
 
 class DateDiffConfig(BaseModel):
-    start_column: str | None = None
-    end_column: str | None = None
+    start_column: ColumnName | None = None
+    end_column: ColumnName | None = None
 
     start_value: str | None = None
     end_value: str | None = None
@@ -22,7 +22,7 @@ class DateDiffConfig(BaseModel):
         "milliseconds",
     ] = "days"
 
-    output_column: str
+    output_column: ColumnName
 
     @model_validator(mode="after")
     def validate_configuration(self):

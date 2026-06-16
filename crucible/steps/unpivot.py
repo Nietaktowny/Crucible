@@ -1,14 +1,14 @@
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
 
 class UnpivotConfig(BaseModel):
-    on: list[str]
-    index: list[str]
-    variable_name: str
-    value_name: str
+    on: list[ColumnName]
+    index: list[ColumnName]
+    variable_name: ColumnName
+    value_name: ColumnName
 
 class UnpivotStep(Step):
     key = "unpivot"

@@ -3,12 +3,12 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInstanceGuard
 
 
 class ExtractDateTimePartConfig(BaseModel):
-    column: str
+    column: ColumnName
     part: Literal[
         "year",
         "month",
@@ -20,7 +20,7 @@ class ExtractDateTimePartConfig(BaseModel):
         "second",
     ]
 
-    output_column: str | None = None
+    output_column: ColumnName | None = None
 
 
 class ExtractDateTimePartStep(Step):

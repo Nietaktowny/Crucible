@@ -1,6 +1,6 @@
 from typing import Literal
 
-from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import (
     MissingColumnsGuard,
     LazyFrameInstanceGuard
@@ -30,7 +30,7 @@ POLARS_TYPES = {
 
 
 class ChangeColumnTypeConfig(BaseModel):
-    column_types: dict[str, Literal[
+    column_types: dict[ColumnName, Literal[
         "string",
         "text",
         "int8",

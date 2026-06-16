@@ -1,14 +1,14 @@
 import polars as pl
 from pydantic import BaseModel
 
-from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol
+from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInstanceGuard
 
 
 class RegexExtractConfig(BaseModel):
-    column: str
+    column: ColumnName
     pattern: str
-    output_column: str
+    output_column: ColumnName
     group_index: int = 1
 
 
