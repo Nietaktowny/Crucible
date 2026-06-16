@@ -155,3 +155,41 @@ export function getCachedPreview(
     `/data/workflows/${encodeURIComponent(name)}/preview`,
   );
 }
+
+export type WorkflowStatus =
+  | "created"
+  | "success"
+  | "failed"
+  | "waiting"
+  | "running"
+  | "cancelled";
+
+export type WorkflowRuntimeStatistics = {
+  total_steps: number;
+  system_steps: number;
+  started_at: string | null;
+  ended_at: string | null;
+  total_time: number;
+};
+
+export type WorkflowErrorContext = {
+  error: unknown;
+  step_id: string;
+  step_name: string;
+  frame_schema: Record<string, string> | null;
+};
+
+export type WorkflowRunResult = {
+  name: string;
+  run_id: string;
+  status: WorkflowStatus;
+  preview?: PreviewRow[] | null;
+  row_count: number | null;
+  error: WorkflowErrorContext | null;
+  statistics: WorkflowRuntimeStatistics;
+  success: boolean;
+};
+
+export function listRuns(): Promise<WorkflowRunResult[]> {
+  return request<WorkflowRunResult[]>("/data/runs");
+}

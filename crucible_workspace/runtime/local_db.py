@@ -38,6 +38,7 @@ class RuntimeDataStorage:
 
         return OrmResult(
             run_id=model.run_id,
+            name=model.name,
             status=model.status.value,
             is_preview=model.preview is not None,
             row_count=model.row_count,
@@ -75,6 +76,7 @@ class RuntimeDataStorage:
 
         return ModelResult(
             run_id=orm.run_id,
+            name=orm.name,
             status=ModelStatus(orm.status),
             preview=None,
             row_count=orm.row_count,
@@ -144,7 +146,7 @@ class RuntimeDataStorage:
                 return orm.run_id
 
             updated = self._pydantic_to_orm(result)
-
+            
             existing.status = updated.status
             existing.is_preview = updated.is_preview
             existing.row_count = updated.row_count

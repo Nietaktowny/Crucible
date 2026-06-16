@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from crucible_server.dependencies import get_workflow_service
 from crucible_server.services.workflows import WorkflowService
 from crucible_workspace import CachedPreview
+from crucible import WorkflowRunResult
 
 router = APIRouter(prefix="/data", tags=["data"])
 
@@ -21,3 +22,9 @@ def get_cached_preview(
         )
 
     return preview
+
+@router.get("/runs", response_model=list[WorkflowRunResult])
+def get_all_runs(
+    workflow_service: WorkflowService = Depends(get_workflow_service),
+) -> list[WorkflowRunResult]:
+    return workflow_service.db.get_all_results()

@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class WorkflowExecutor:
      
     def run(self, workflow_execution_plan: WorkflowExecutionPlan) -> WorkflowRunResult:
-        result = WorkflowRunResult(status=WorkflowStatus.RUNNING)
+        result = WorkflowRunResult(name=workflow_execution_plan.workflow.name, status=WorkflowStatus.RUNNING)
         data: FrameContext | None = None
         context = StepExecutionContext()
         result.statistics.started_at = datetime.now(UTC)

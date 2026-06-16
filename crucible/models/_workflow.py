@@ -157,6 +157,7 @@ class WorkflowRunResult(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     
     run_id: str = Field(default_factory=lambda: uuid4().hex)
+    name: str
     status: WorkflowStatus = WorkflowStatus.CREATED
     preview: pl.DataFrame | None = None
     row_count: int | None = None

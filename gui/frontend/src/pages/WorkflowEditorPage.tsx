@@ -157,7 +157,6 @@ function workflowToYaml(workflow: Workflow): string {
 }
 
 export default function WorkflowEditorPage() {
-  const [darkMode, setDarkMode] = useState(true);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [serverWorkflows, setServerWorkflows] = useState<WorkflowSummary[]>([]);
@@ -492,133 +491,113 @@ export default function WorkflowEditorPage() {
   }
 
   return (
-    <div className={darkMode ? "dark" : ""}>
-      <div className="h-screen overflow-hidden bg-background text-foreground">
-        <header className="flex h-14 items-center gap-4 border-b px-4">
-          <div className="font-semibold">Crucible</div>
+    <div className="h-full overflow-hidden bg-background text-foreground">
+      <header className="flex h-14 items-center gap-4 border-b px-4">
+        <Input
+          className="w-72"
+          value={workflow.name}
+          onChange={(event) => {
+            setWorkflow((current) => ({
+              ...current,
+              name: event.target.value,
+            }));
+          }}
+        />
 
-          <Separator orientation="vertical" className="h-6" />
+        <Button variant="outline" onClick={createNewWorkflow}>
+          New
+        </Button>
 
-          <Input
-            className="w-72"
-            value={workflow.name}
-            onChange={(event) => {
-              setWorkflow((current) => ({
-                ...current,
-                name: event.target.value,
-              }));
-            }}
-          />
+        <select
+          className="h-9 rounded-md border bg-background px-3 text-sm"
+          value={selectedServerWorkflow}
+          onChange={(event) => handleServerWorkflowChange(event.target.value)}
+        >
+          <option value="">Select workflow</option>
+          {serverWorkflows.map((item) => (
+            <option key={item.name} value={item.name}>
+              {item.name}
+            </option>
+          ))}
+        </select>
 
-          <Button variant="outline" onClick={createNewWorkflow}>
-            New
-          </Button>
+        <Button
+          variant="outline"
+          onClick={() => {
+            saveWorkflowToServer().catch((error) => {
+              console.error(error);
 
-          <select
-            className="h-9 rounded-md border bg-background px-3 text-sm"
-            value={selectedServerWorkflow}
-            onChange={(event) =>
-              handleServerWorkflowChange(event.target.value)
-            }
-          >
-            <option value="">Select workflow</option>
-            {serverWorkflows.map((item) => (
-              <option key={item.name} value={item.name}>
-                {item.name}
-              </option>
-            ))}
-          </select>
+              const message =
+                error instanceof Error ? error.message : "Failed to save workflow.";
 
-          <Button
-            variant="outline"
-            onClick={() => {
-              saveWorkflowToServer().catch((error) => {
-                console.error(error);
+              const details = (error as ErrorWithDetails).details;
 
-                const message =
-                  error instanceof Error
-                    ? error.message
-                    : "Failed to save workflow.";
+              setErrorMessage(message);
+              setErrorDetails(
+                details ? JSON.stringify(details, null, 2) : undefined,
+              );
+              setStatus("Failed to save workflow.");
+            });
+          }}
+        >
+          Save
+        </Button>
 
-                const details = (error as ErrorWithDetails).details;
+        <Button variant="outline" onClick={runSelectedWorkflow}>
+          Run
+        </Button>
 
-                setErrorMessage(message);
-                setErrorDetails(
-                  details ? JSON.stringify(details, null, 2) : undefined,
-                );
-                setStatus("Failed to save workflow.");
-              });
-            }}
-          >
-            Save
-          </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".yaml,.yml"
+          className="hidden"
+          onChange={handleWorkflowFileChange}
+        />
 
-          <Button variant="outline" onClick={runSelectedWorkflow}>
-            Run
-          </Button>
+        <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+          Import
+        </Button>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".yaml,.yml"
-            className="hidden"
-            onChange={handleWorkflowFileChange}
-          />
+        <div className="ml-auto flex items-center gap-3">
+          {status && (
+            <div className="max-w-[360px] truncate text-sm text-muted-foreground">
+              {status}
+            </div>
+          )}
+        </div>
+      </header>
 
-          <Button
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            Import
-          </Button>
+      <main className="grid h-[calc(100%-3.5rem)] grid-cols-[280px_380px_minmax(640px,1fr)] gap-4 p-4">
+        <StepLibrary onAddStep={addStep} />
 
-          <div className="ml-auto flex items-center gap-3">
-            {status && (
-              <div className="max-w-[360px] truncate text-sm text-muted-foreground">
-                {status}
-              </div>
-            )}
+        <StepConfigPanel
+          step={selectedStep}
+          onUpdateParameters={updateSelectedStepParameters}
+          onUpdateMetadata={updateSelectedStepMetadata}
+          onUpdateSources={updateSelectedStepSources}
+          onRemoveStep={removeSelectedStep}
+        />
 
-            <Button
-              variant="outline"
-              onClick={() => setDarkMode((value) => !value)}
-            >
-              {darkMode ? "Light mode" : "Dark mode"}
-            </Button>
-          </div>
-        </header>
+        <WorkflowRightPanel
+          workflow={workflow}
+          selectedStepId={selectedStepId}
+          onSelectStep={setSelectedStepId}
+          runResult={runResult}
+        />
+      </main>
 
-        <main className="grid h-[calc(100vh-3.5rem)] grid-cols-[280px_380px_minmax(640px,1fr)] gap-4 p-4">
-          <StepLibrary onAddStep={addStep} />
-
-          <StepConfigPanel
-            step={selectedStep}
-            onUpdateParameters={updateSelectedStepParameters}
-            onUpdateMetadata={updateSelectedStepMetadata}
-            onUpdateSources={updateSelectedStepSources}
-            onRemoveStep={removeSelectedStep}
-          />
-
-          <WorkflowRightPanel
-            workflow={workflow}
-            selectedStepId={selectedStepId}
-            onSelectStep={setSelectedStepId}
-            runResult={runResult}
-          />
-        </main>
-
-        {errorMessage && (
-          <ErrorPanel
-            title="Workflow error"
-            message={errorMessage}
-            details={errorDetails}
-            onClose={() => {
-              setErrorMessage(null);
-              setErrorDetails(undefined);
-            }}
-          />
-        )}
-      </div>
+      {errorMessage && (
+        <ErrorPanel
+          title="Workflow error"
+          message={errorMessage}
+          details={errorDetails}
+          onClose={() => {
+            setErrorMessage(null);
+            setErrorDetails(undefined);
+          }}
+        />
+      )}
     </div>
   );
 }

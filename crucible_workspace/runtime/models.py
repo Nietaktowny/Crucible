@@ -31,6 +31,7 @@ class _WorkflowRunResult(RuntimeModelBase):
     __tablename__ = 'runs'
     
     run_id: Mapped[str] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(nullable=False)
     status: Mapped[WorkflowStatus] = mapped_column(default=WorkflowStatus.CREATED, nullable=False)
     is_preview: Mapped[bool] = mapped_column(default=False)
     row_count: Mapped[int | None] = mapped_column(nullable=True)

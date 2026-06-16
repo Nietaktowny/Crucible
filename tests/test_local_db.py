@@ -46,6 +46,7 @@ def make_statistics(
 def make_result(
     *,
     run_id: str = "run-1",
+    name: str = "test_run",
     status: WorkflowStatus = WorkflowStatus.SUCCESS,
     row_count: int | None = 10,
     error: WorkflowErrorContext | None = None,
@@ -53,6 +54,7 @@ def make_result(
 ) -> WorkflowRunResult:
     return WorkflowRunResult(
         run_id=run_id,
+        name=name,
         status=status,
         preview=None,
         row_count=row_count,
