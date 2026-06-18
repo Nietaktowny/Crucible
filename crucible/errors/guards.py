@@ -26,6 +26,7 @@ class MissingColumnsGuard(StepGuardBase):
             missing = [column for column in self.columns if column not in data.schema.keys()]
             if missing:
                 raise ColumnNotFoundError(f"Column or columns not found in data schema: {missing}. Available columns: {list(data.schema.keys())}")
+
 class ColumnsTypeGuard(StepGuardBase):
     def __init__(self, schema: dict[str, str | Sequence[str]]) -> None:
         super().__init__()
@@ -35,13 +36,13 @@ class ColumnsTypeGuard(StepGuardBase):
         mismatches: dict[str, dict[str, object]] = {}
 
         for column, expected_type in self.expected_schema.items():
-            expected_type = str(expected_type).lower()
-            actual_type = data.schema.get(column)
+            expected_type = expected_type
+            actual_type = str(data.schema.get(column)).lower().strip()
 
             if isinstance(expected_type, str):
-                expected_types = [expected_type]
+                expected_types = [str(expected_type).lower().strip()]
             else:
-                expected_types = list(expected_type)
+                expected_types = [str(expected).lower().strip() for expected in list(expected_type)]
 
             if str(actual_type).lower() not in expected_types:
                 mismatches[column] = {
@@ -52,8 +53,7 @@ class ColumnsTypeGuard(StepGuardBase):
         if mismatches:
             raise ColumnTypeMismatchError(
                 f"Columns with different type than expected found: {mismatches}"
-            )
-            
+            )    
 class MissingFileGuard(StepGuardBase):    
     def __init__(self, path: Path) -> None:
         super().__init__()
@@ -64,7 +64,8 @@ class MissingFileGuard(StepGuardBase):
             if self.path.is_dir():
                 raise FileNotFoundError(f"Directory under path '{self.path.absolute()}' doesn't exist!")
             else:
-                raise FileNotFoundError(f"File under path '{self.path.absolute()}' doesn't exist!")            
+                raise FileNotFoundError(f"File under path '{self.path.absolute()}' doesn't exist!")
+            
 class LazyFrameInstanceGuard(StepGuardBase):    
     def __init__(self) -> None:
         super().__init__()
