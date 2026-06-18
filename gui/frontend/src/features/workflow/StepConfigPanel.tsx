@@ -9,11 +9,17 @@ import {
   type WorkflowEditorStep,
   type WorkflowSourceStep,
 } from "@/features/workflow/types";
+import type {
+  JsonSchemaProperty,
+  StepSchemaDefinition,
+} from "@/lib/crucibleApi";
 
 type SourceStep = WorkflowSourceStep;
 
 type StepConfigPanelProps = {
   step: WorkflowEditorStep | null;
+  schema?: StepSchemaDefinition;
+  availableColumns?: string[];
   onUpdateParameters: (field: string, value: unknown) => void;
   onUpdateMetadata: (field: "name" | "description", value: string) => void;
   onUpdateSources?: (sources: SourceStep[]) => void;
@@ -184,6 +190,28 @@ function parsePrimitiveValue(value: string, previousValue: unknown): unknown {
   return value;
 }
 
+function getSchemaInitialValue(schema?: JsonSchemaProperty): unknown {
+  if (!schema) return "";
+
+  if (schema.default !== undefined) return schema.default;
+
+  if (schema.enum?.length) return schema.enum[0];
+
+  if (schema.type === "array") return [];
+  if (schema.type === "boolean") return false;
+  if (schema.type === "integer" || schema.type === "number") return 0;
+  if (schema.type === "object") return {};
+
+  return "";
+}
+
+function getFieldSchema(
+  parentSchema: JsonSchemaProperty | undefined,
+  field: string,
+): JsonSchemaProperty | undefined {
+  return parentSchema?.properties?.[field];
+}
+
 function makeId() {
   return crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 }
@@ -214,6 +242,12 @@ function EmptyHint({ children }: { children: string }) {
       {children}
     </div>
   );
+}
+
+function FieldDescription({ children }: { children?: string }) {
+  if (!children) return null;
+
+  return <div className="text-xs text-muted-foreground">{children}</div>;
 }
 
 function SelectInput({
@@ -271,6 +305,76 @@ function PrimitiveValueInput({
         onChange(parsePrimitiveValue(event.target.value, value))
       }
     />
+  );
+}
+
+function ColumnSelectEditor({
+  value,
+  availableColumns,
+  onChange,
+}: {
+  value: unknown;
+  availableColumns: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <select
+      className="h-10 w-full rounded-md border bg-background px-3 text-sm text-foreground"
+      value={typeof value === "string" ? value : ""}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      <option value="">Select column...</option>
+
+      {availableColumns.map((column) => (
+        <option key={column} value={column}>
+          {column}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function ColumnMultiSelectEditor({
+  value,
+  availableColumns,
+  onChange,
+}: {
+  value: unknown;
+  availableColumns: string[];
+  onChange: (value: string[]) => void;
+}) {
+  const selected = Array.isArray(value) ? value.map(String) : [];
+
+  return (
+    <div className="space-y-2">
+      {availableColumns.length === 0 && (
+        <EmptyHint>No preview columns available. Run workflow first.</EmptyHint>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        {availableColumns.map((column) => {
+          const checked = selected.includes(column);
+
+          return (
+            <Button
+              key={column}
+              type="button"
+              variant={checked ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                if (checked) {
+                  onChange(selected.filter((item) => item !== column));
+                } else {
+                  onChange([...selected, column]);
+                }
+              }}
+            >
+              {column}
+            </Button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -491,7 +595,7 @@ function StringListEditor({
 
           <Input
             value={item}
-            placeholder="Column"
+            placeholder="Value"
             onChange={(event) => updateItem(index, event.target.value)}
           />
 
@@ -522,11 +626,15 @@ function PrimitiveRecordEditor({
   path,
   value,
   onChange,
+  schema,
+  availableColumns,
 }: {
   stepKey: string;
   path: string[];
   value: Record<string, unknown>;
   onChange: (value: Record<string, unknown>) => void;
+  schema?: JsonSchemaProperty;
+  availableColumns: string[];
 }) {
   const entries = Object.entries(value);
 
@@ -550,6 +658,11 @@ function PrimitiveRecordEditor({
     onChange({ ...value, [key]: "" });
   }
 
+  const valueSchema =
+    typeof schema?.additionalProperties === "object"
+      ? schema.additionalProperties
+      : undefined;
+
   return (
     <div className="space-y-2">
       {entries.length === 0 && <EmptyHint>Empty dictionary.</EmptyHint>}
@@ -571,6 +684,8 @@ function PrimitiveRecordEditor({
             stepKey={stepKey}
             path={[...path, key]}
             value={entryValue}
+            schema={valueSchema}
+            availableColumns={availableColumns}
             onChange={(nextValue) => updateEntry(index, key, nextValue)}
           />
 
@@ -607,13 +722,28 @@ function ObjectListEditor({
   path,
   value,
   onChange,
+  schema,
+  availableColumns,
 }: {
   stepKey: string;
   path: string[];
   value: Record<string, unknown>[];
   onChange: (value: Record<string, unknown>[]) => void;
+  schema?: JsonSchemaProperty;
+  availableColumns: string[];
 }) {
+  const itemSchema = schema?.items;
+
   function makeDefaultItem(): Record<string, unknown> {
+    if (itemSchema?.properties) {
+      return Object.fromEntries(
+        Object.entries(itemSchema.properties).map(([field, fieldSchema]) => [
+          field,
+          getSchemaInitialValue(fieldSchema),
+        ]),
+      );
+    }
+
     const field = path.at(-1);
 
     if (stepKey === "sort_rows" && field === "columns") {
@@ -696,6 +826,8 @@ function ObjectListEditor({
             stepKey={stepKey}
             path={path}
             value={item}
+            schema={itemSchema}
+            availableColumns={availableColumns}
             onChange={(nextItem) => updateItem(index, nextItem)}
           />
         </div>
@@ -718,26 +850,42 @@ function ObjectEditor({
   path,
   value,
   onChange,
+  schema,
+  availableColumns,
 }: {
   stepKey: string;
   path: string[];
   value: Record<string, unknown>;
   onChange: (value: Record<string, unknown>) => void;
+  schema?: JsonSchemaProperty;
+  availableColumns: string[];
 }) {
+  const fields = schema?.properties
+    ? Object.entries(schema.properties)
+    : Object.entries(value).map(([field]) => [field, undefined] as const);
+
   return (
     <div className="space-y-3">
-      {Object.entries(value).map(([field, fieldValue]) => (
-        <div key={field} className="space-y-2">
-          <FieldLabel>{field}</FieldLabel>
+      {fields.map(([field, fieldSchema]) => {
+        const fieldValue =
+          value[field] ?? getSchemaInitialValue(fieldSchema);
 
-          <ConfigValueEditor
-            stepKey={stepKey}
-            path={[...path, field]}
-            value={fieldValue}
-            onChange={(nextValue) => onChange({ ...value, [field]: nextValue })}
-          />
-        </div>
-      ))}
+        return (
+          <div key={field} className="space-y-2">
+            <FieldLabel>{fieldSchema?.title ?? field}</FieldLabel>
+            <FieldDescription>{fieldSchema?.description}</FieldDescription>
+
+            <ConfigValueEditor
+              stepKey={stepKey}
+              path={[...path, field]}
+              value={fieldValue}
+              schema={fieldSchema}
+              availableColumns={availableColumns}
+              onChange={(nextValue) => onChange({ ...value, [field]: nextValue })}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -773,14 +921,40 @@ function ConfigValueEditor({
   path,
   value,
   onChange,
+  schema,
+  availableColumns = [],
 }: {
   stepKey: string;
   path: string[];
   value: unknown;
   onChange: (value: unknown) => void;
+  schema?: JsonSchemaProperty;
+  availableColumns?: string[];
 }) {
   const field = path.at(-1) ?? "";
-  const literalOptions = getLiteralOptions(stepKey, path);
+  const literalOptions = schema?.enum ?? getLiteralOptions(stepKey, path);
+  const editor = schema?.["crucible:editor"];
+  const crucibleType = schema?.["crucible:type"];
+
+  if (editor === "column-multiselect") {
+    return (
+      <ColumnMultiSelectEditor
+        value={value}
+        availableColumns={availableColumns}
+        onChange={onChange}
+      />
+    );
+  }
+
+  if (editor === "column-select" || crucibleType === "column-name") {
+    return (
+      <ColumnSelectEditor
+        value={value}
+        availableColumns={availableColumns}
+        onChange={onChange}
+      />
+    );
+  }
 
   if (stepKey === "filter_rows" && path.join(".") === "condition") {
     return <FilterConditionEditor value={value} onChange={onChange} />;
@@ -809,6 +983,32 @@ function ConfigValueEditor({
     );
   }
 
+  if (schema?.type === "boolean") {
+    return (
+      <SelectInput
+        value={String(value)}
+        options={["true", "false"]}
+        onChange={(next) => onChange(next === "true")}
+      />
+    );
+  }
+
+  if (
+    (schema?.type === "integer" || schema?.type === "number") &&
+    isPrimitive(value)
+  ) {
+    return (
+      <Input
+        type="number"
+        value={String(value ?? "")}
+        onChange={(event) => {
+          const nextValue = event.target.value;
+          onChange(nextValue === "" ? null : Number(nextValue));
+        }}
+      />
+    );
+  }
+
   if (isPathField(field) && typeof value === "string") {
     return (
       <PathEditor
@@ -830,6 +1030,8 @@ function ConfigValueEditor({
         stepKey={stepKey}
         path={path}
         value={value as Record<string, unknown>[]}
+        schema={schema}
+        availableColumns={availableColumns}
         onChange={onChange}
       />
     );
@@ -841,6 +1043,8 @@ function ConfigValueEditor({
         stepKey={stepKey}
         path={path}
         value={value}
+        schema={schema}
+        availableColumns={availableColumns}
         onChange={onChange}
       />
     );
@@ -852,6 +1056,8 @@ function ConfigValueEditor({
         stepKey={stepKey}
         path={path}
         value={value}
+        schema={schema}
+        availableColumns={availableColumns}
         onChange={onChange}
       />
     );
@@ -893,10 +1099,12 @@ function SourcesEditor({
   ownerStepKey,
   sources,
   onChange,
+  availableColumns,
 }: {
   ownerStepKey: string;
   sources: SourceStep[];
   onChange?: (sources: SourceStep[]) => void;
+  availableColumns: string[];
 }) {
   const availableStepKeys = Object.keys(stepRegistry) as StepKey[];
   const canEdit = Boolean(onChange);
@@ -1027,6 +1235,7 @@ function SourcesEditor({
                       stepKey={source.key}
                       path={[field]}
                       value={value}
+                      availableColumns={availableColumns}
                       onChange={(nextValue) =>
                         updateSourceParameter(index, field, nextValue)
                       }
@@ -1090,6 +1299,8 @@ function AddSourceControl({
 
 export default function StepConfigPanel({
   step,
+  schema,
+  availableColumns = [],
   onUpdateParameters,
   onUpdateMetadata,
   onUpdateSources,
@@ -1108,6 +1319,21 @@ export default function StepConfigPanel({
       </section>
     );
   }
+
+  const parameterSchema = schema?.schema;
+  const schemaProperties = parameterSchema?.properties;
+
+  const parameterEntries = schemaProperties
+    ? Object.entries(schemaProperties).map(([field, fieldSchema]) => [
+        field,
+        step.parameters[field] ?? getSchemaInitialValue(fieldSchema),
+        fieldSchema,
+      ] as const)
+    : Object.entries(step.parameters).map(([field, value]) => [
+        field,
+        value,
+        getFieldSchema(parameterSchema, field),
+      ] as const);
 
   return (
     <section className="flex min-h-0 flex-col rounded-lg border bg-card">
@@ -1148,18 +1374,21 @@ export default function StepConfigPanel({
           </div>
 
           <div className="space-y-4">
-            {Object.entries(step.parameters).length === 0 && (
+            {parameterEntries.length === 0 && (
               <EmptyHint>This step has no parameters.</EmptyHint>
             )}
 
-            {Object.entries(step.parameters).map(([field, value]) => (
+            {parameterEntries.map(([field, value, fieldSchema]) => (
               <div key={field} className="space-y-2">
-                <FieldLabel>{field}</FieldLabel>
+                <FieldLabel>{fieldSchema?.title ?? field}</FieldLabel>
+                <FieldDescription>{fieldSchema?.description}</FieldDescription>
 
                 <ConfigValueEditor
                   stepKey={step.key}
                   path={[field]}
                   value={value}
+                  schema={fieldSchema}
+                  availableColumns={availableColumns}
                   onChange={(nextValue) => onUpdateParameters(field, nextValue)}
                 />
               </div>
@@ -1176,6 +1405,7 @@ export default function StepConfigPanel({
             <SourcesEditor
               ownerStepKey={step.key}
               sources={step.sources}
+              availableColumns={availableColumns}
               onChange={onUpdateSources}
             />
           </div>

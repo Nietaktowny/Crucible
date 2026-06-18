@@ -1,15 +1,23 @@
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from crucible.io import ExcelIOManager
 from crucible.errors import MissingFileGuard
 from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
+from crucible.schema import build_schema
 
 import polars as pl
 
 class ReadExcelConfig(BaseModel):
-    path: Path
+    path: Path = Field(
+        description="Path to the Excel file to read",
+        json_schema_extra=build_schema(
+            type_='file-path',
+            source='filesystem',
+            editor='file-picker'
+        )
+    )
     sheet: str | None = None
     context_store: bool = False
     context_key: str | None = None

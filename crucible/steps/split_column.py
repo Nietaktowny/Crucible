@@ -1,18 +1,44 @@
 import polars as pl
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from sqlalchemy import desc
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInstanceGuard
-
+from crucible.schema import build_schema
 
 class SplitColumnConfig(BaseModel):
-    column: ColumnName
-    delimiter: str
+    column: ColumnName = Field(
+        description="Column to replace values in",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='input-column',
+            source='input-schema',
+            editor='column-select'
+        )
+    )
+    delimiter: str = Field(
+        description="Delimiter to use for splitting",
+        json_schema_extra=build_schema(
+            editor='text'
+        )
+    )
 
     into: list[ColumnName]
 
-    max_splits: int | None = None
-    drop_original: bool = False
+    max_splits: int | None = Field(
+        default=None,
+        description="Number of max splits to do",
+        json_schema_extra=build_schema(
+            editor='number'
+        )
+    )
+    drop_original: bool = Field(
+        default=False,
+        description="Whether to drop the original column used for splitting",
+        json_schema_extra=build_schema(
+            editor='checkbox'
+        )
+    )
 
 
 class SplitColumnStep(Step):

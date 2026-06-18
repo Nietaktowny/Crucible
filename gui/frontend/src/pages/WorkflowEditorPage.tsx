@@ -4,7 +4,6 @@ import { parse, stringify } from "yaml";
 import ErrorPanel from "@/components/ErrorPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import StepConfigPanel from "@/features/workflow/StepConfigPanel";
 import StepLibrary from "@/features/workflow/StepLibrary";
 import WorkflowRightPanel from "@/features/workflow/WorkflowRightPanel";
@@ -20,9 +19,11 @@ import {
   createWorkflow,
   getCachedPreview,
   getWorkflow,
+  listStepSchemas,
   listWorkflows,
   runWorkflow,
   updateWorkflow,
+  type StepSchemaDefinition,
   type WorkflowRunResponse,
   type WorkflowSummary,
 } from "@/lib/crucibleApi";
@@ -156,6 +157,16 @@ function workflowToYaml(workflow: Workflow): string {
   );
 }
 
+function getPreviewColumns(runResult: WorkflowRunResponse | null): string[] {
+  const firstRow = runResult?.preview?.[0];
+
+  if (!firstRow) {
+    return [];
+  }
+
+  return Object.keys(firstRow);
+}
+
 export default function WorkflowEditorPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -172,6 +183,10 @@ export default function WorkflowEditorPage() {
   const [status, setStatus] = useState("");
   const [runResult, setRunResult] = useState<WorkflowRunResponse | null>(null);
 
+  const [stepSchemas, setStepSchemas] = useState<
+    Record<string, StepSchemaDefinition>
+  >({});
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | undefined>();
 
@@ -180,9 +195,26 @@ export default function WorkflowEditorPage() {
     [workflow.steps, selectedStepId],
   );
 
+  const selectedStepSchema = selectedStep
+    ? stepSchemas[selectedStep.key]
+    : undefined;
+
+  const previewColumns = useMemo(
+    () => getPreviewColumns(runResult),
+    [runResult],
+  );
+
   async function refreshServerWorkflows() {
     const result = await listWorkflows();
     setServerWorkflows(result.workflows);
+  }
+
+  async function refreshStepSchemas() {
+    const schemas = await listStepSchemas();
+
+    setStepSchemas(
+      Object.fromEntries(schemas.map((schema) => [schema.key, schema])),
+    );
   }
 
   async function loadCachedPreviewForWorkflow(name: string) {
@@ -259,7 +291,9 @@ export default function WorkflowEditorPage() {
 
     if (isLinkedToServer && selectedServerWorkflow) {
       await updateWorkflow(selectedServerWorkflow, content);
-      setStatus(`Saved ${selectedServerWorkflow}. Run workflow to refresh preview.`);
+      setStatus(
+        `Saved ${selectedServerWorkflow}. Run workflow to refresh preview.`,
+      );
       return;
     }
 
@@ -306,6 +340,13 @@ export default function WorkflowEditorPage() {
       console.error(error);
       setStatus(
         error instanceof Error ? error.message : "Failed to load workflows.",
+      );
+    });
+
+    refreshStepSchemas().catch((error) => {
+      console.error(error);
+      setStatus(
+        error instanceof Error ? error.message : "Failed to load step schemas.",
       );
     });
   }, []);
@@ -573,6 +614,8 @@ export default function WorkflowEditorPage() {
 
         <StepConfigPanel
           step={selectedStep}
+          schema={selectedStepSchema}
+          availableColumns={previewColumns}
           onUpdateParameters={updateSelectedStepParameters}
           onUpdateMetadata={updateSelectedStepMetadata}
           onUpdateSources={updateSelectedStepSources}

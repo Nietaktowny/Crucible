@@ -1,15 +1,39 @@
 from typing import Literal
 
 import polars as pl
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
-
+from crucible.schema import build_schema
 class JoinConfig(BaseModel):
-    left_on: ColumnName | list[ColumnName]
-    right_on: ColumnName | list[ColumnName]
-    how: Literal["left", "inner", "right", "full", "anti", "cross"] = "left"
+    left_on: ColumnName | list[ColumnName] = Field(
+        description="Column or list of columns to join on left side",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='join-left-key',
+            source='left-schema',
+            editor='column-multiselect'
+        )
+    )
+    right_on: ColumnName | list[ColumnName] = Field(
+        description="Column or list of columns to join on right side",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='join-right-key',
+            source='right-schema',
+            editor='column-multiselect'
+        )
+    )
+    how: Literal["left", "inner", "right", "full", "anti", "cross"] = Field(
+        default="left",
+        description="How to join two dataframes",
+        json_schema_extra=build_schema(
+            type_='literal-value',
+            source='enum',
+            editor='select'
+        )
+    )
 
 class JoinStep(Step):
     key = "join"

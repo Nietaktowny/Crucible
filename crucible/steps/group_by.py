@@ -1,14 +1,22 @@
 from typing import Literal
 
 import polars as pl
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
-
+from crucible.schema import build_schema
 
 class AggregationConfig(BaseModel):
-    column: ColumnName
+    column: ColumnName = Field(
+        description="Column to use for aggregation",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='input-column',
+            source='input-schema',
+            editor='column-select'
+        )
+    )
     function: Literal[
         "sum",
         "min",
@@ -20,8 +28,23 @@ class AggregationConfig(BaseModel):
         "first",
         "last",
         "n_unique",
-    ]
-    alias: ColumnName | None = None
+    ] = Field(
+        description="Aggregation function to use.",
+        json_schema_extra=build_schema(
+            type_='literal-value',
+            editor='select',
+            source='enum'
+        )
+    )
+    alias: ColumnName | None = Field(
+        default=None,
+        description="Alias column name to use",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='output-column',
+            editor='text'
+        )
+    )
 
 
 class GroupByConfig(BaseModel):

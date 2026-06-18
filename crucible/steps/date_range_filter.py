@@ -2,14 +2,23 @@ from datetime import date, datetime
 from typing import Literal
 
 import polars as pl
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInstanceGuard
-
+from crucible.schema import build_schema
 
 class DateRangeFilterConfig(BaseModel):
-    column: ColumnName
+    column: ColumnName = Field(
+        default=None,
+        description="Column with date value used as ending point",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='input-column',
+            source='input-schema',
+            editor='column-select'
+        )
+    )
 
     start: str
     end: str

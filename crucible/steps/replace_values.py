@@ -1,14 +1,23 @@
 from typing import Any
 
 import polars as pl
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, Field
 
 from crucible.errors.guards import LazyFrameInstanceGuard
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard
+from crucible.schema import build_schema
 
 class ReplaceValuesConfig(BaseModel):
-    column: ColumnName
+    column: ColumnName = Field(
+        description="Column to replace values in",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='input-column',
+            source='input-schema',
+            editor='column-select'
+        )
+    )
 
     old: Any | None = None
     new: Any | None = None

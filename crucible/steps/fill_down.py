@@ -1,12 +1,20 @@
 import polars as pl
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
-
+from crucible.schema import build_schema
 
 class FillDownConfig(BaseModel):
-    columns: list[ColumnName]
+    columns: list[ColumnName]  = Field(
+        description="List of columns to drop",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='input-column',
+            source='input-schema',
+            editor='column-multiselect'
+        )
+    )
 
 
 class FillDownStep(Step):

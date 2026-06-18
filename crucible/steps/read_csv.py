@@ -1,16 +1,24 @@
 from pathlib import Path
 from uuid import uuid4
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from crucible.io import CsvIOManager
 from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext, StepGuardProtocol
 from crucible.errors import MissingFileGuard
+from crucible.schema import build_schema
 
 import polars as pl
 
 class ReadCsvConfig(BaseModel):
-    path: Path
+    path: Path = Field(
+        description="Path to the CSV file to read",
+        json_schema_extra=build_schema(
+            type_='file-path',
+            source='filesystem',
+            editor='file-picker'
+        )
+    )
     separator: str = ','
     infer_types: bool = False
     context_store: bool = False

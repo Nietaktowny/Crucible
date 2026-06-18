@@ -193,3 +193,31 @@ export type WorkflowRunResult = {
 export function listRuns(): Promise<WorkflowRunResult[]> {
   return request<WorkflowRunResult[]>("/data/runs");
 }
+
+export type JsonSchemaProperty = {
+  type?: string;
+  title?: string;
+  description?: string;
+  default?: unknown;
+  enum?: string[];
+  items?: JsonSchemaProperty;
+  properties?: Record<string, JsonSchemaProperty>;
+  required?: string[];
+  anyOf?: JsonSchemaProperty[];
+
+  "crucible:type"?: string;
+  "crucible:editor"?: string;
+  "crucible:source"?: string;
+  "crucible:role"?: string;
+};
+
+export type StepSchemaDefinition = {
+  key: string;
+  name: string;
+  description: string;
+  schema: JsonSchemaProperty;
+};
+
+export async function listStepSchemas(): Promise<StepSchemaDefinition[]> {
+  return request<StepSchemaDefinition[]>("/data/steps_schema");
+}

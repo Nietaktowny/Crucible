@@ -3,14 +3,39 @@ from typing import Literal
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
+from crucible.schema import build_schema
 
 import polars as pl
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class PivotConfig(BaseModel):
-    on: list[ColumnName]
-    index: list[ColumnName]
-    values: list[ColumnName]
+    on: list[ColumnName] = Field(
+        description="Columns to pivot on",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='input-column',
+            editor='column-multiselect',
+            source='input-schema'
+        )
+    )
+    index: list[ColumnName] = Field(
+        description="Columns that will be used as an index. They will stay unchanged.",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='input-column',
+            source='input-schema',
+            editor='column-multiselect'
+        )
+    )
+    values: list[ColumnName] = Field(
+        description="Columns that will be used as values for pivoted columns.",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='input-column',
+            source='input-schema',
+            editor='column-multiselect'
+        )
+    )
     aggregate_function: Literal[
         'first',
         'last',
@@ -20,7 +45,15 @@ class PivotConfig(BaseModel):
         'mean',
         'median',
         'len'
-    ] = 'first'
+    ] = Field(
+        default='first',
+        description="How values would be aggregated after pivot.",
+        json_schema_extra=build_schema(
+            type_='literal-value',
+            source='enum',
+            editor='select'
+        )
+    )
 
 class PivotStep(Step):
     key = "pivot"

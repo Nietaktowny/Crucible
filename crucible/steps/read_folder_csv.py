@@ -2,14 +2,21 @@ from pathlib import Path
 from uuid import uuid4
 
 import polars as pl
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext, StepGuardProtocol
 from crucible.errors import MissingFileGuard
-
+from crucible.schema import build_schema
 
 class ReadFolderCsvConfig(BaseModel):
-    path: Path
+    path: Path = Field(
+        description="Path to the folder with CSV files to read",
+        json_schema_extra=build_schema(
+            type_='file-path',
+            source='filesystem',
+            editor='folder-picker'
+        )
+    )
     pattern: str = "*.csv"
     separator: str = ","
     infer_types: bool = False

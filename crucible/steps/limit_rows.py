@@ -2,13 +2,25 @@ from typing import Literal
 
 from crucible.models import Step, FrameContext, StepGuardProtocol
 import polars as pl
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from crucible.models import StepExecutionContext
-
+from crucible.schema import build_schema
 class LimitRowsConfig(BaseModel):
-    limit: int
-    mode: Literal['head', 'tail']
+    limit: int = Field(
+        description="Number of max rows to return",
+        json_schema_extra=build_schema(
+            editor='number'
+        )
+    )
+    mode: Literal['head', 'tail'] = Field(
+        description="Whether to select last or first n rows",
+        json_schema_extra=build_schema(
+            type_='literal-value',
+            source='enum',
+            editor='select'
+        )
+    )
 
 class LimitRowsStep(Step):
     key = "limit_rows"

@@ -1,15 +1,42 @@
 import polars as pl
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInstanceGuard
-
+from crucible.schema import build_schema
 
 class RegexExtractConfig(BaseModel):
-    column: ColumnName
-    pattern: str
-    output_column: ColumnName
-    group_index: int = 1
+    column: ColumnName = Field(
+        description="Column to extract text using regex from",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='input-column',
+            source='input-schema',
+            editor='column-select'
+        )
+    )
+    pattern: str = Field(
+        description="Regex pattern to use for text extracting",
+        json_schema_extra=build_schema(
+            editor='text'
+        )
+    )
+    output_column: ColumnName = Field(
+        description="Column to put extracted values into",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='output-column',
+            source='input-schema',
+            editor='text'
+        )
+    )
+    group_index: int = Field(
+        default=1,
+        description="Group index to use",
+        json_schema_extra=build_schema(\
+            editor='number'
+        )
+    )
 
 
 class RegexExtractStep(Step):

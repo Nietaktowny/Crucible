@@ -1,25 +1,47 @@
 from typing import Literal
 
 import polars as pl
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInstanceGuard
-
+from crucible.schema import build_schema
 
 class DateAddConfig(BaseModel):
-    column: ColumnName
+    column: ColumnName = Field(
+        description="Column with date to use as input",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='input-column',
+            source='input-schema',
+            editor='column-select'
+        )
+    )
 
-    value: int
+    value: int = Field(description="Number of units to add")
     unit: Literal[
         "days",
         "hours",
         "minutes",
         "seconds",
         "milliseconds",
-    ] = "days"
+    ] = Field(
+        default='days',
+        description="Unit of date to add",
+        json_schema_extra=build_schema(
+            type_='literal-value',
+            source='enum'
+        )
+    )
 
-    output_column: ColumnName | None = None
+    output_column: ColumnName | None = Field(
+        default=None,
+        description="Column to save output into.",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='output-column'
+        )
+    )
 
 
 class DateAddStep(Step):

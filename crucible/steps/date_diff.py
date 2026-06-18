@@ -1,18 +1,42 @@
 from typing import Literal
 
 import polars as pl
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, Field
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInstanceGuard
-
+from crucible.schema import build_schema
 
 class DateDiffConfig(BaseModel):
-    start_column: ColumnName | None = None
-    end_column: ColumnName | None = None
+    start_column: ColumnName | None = Field(
+        default=None,
+        description="Column with date value used as starting point",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='input-column',
+            source='input-schema',
+            editor='column-select'
+        )
+    )
+    end_column: ColumnName | None = Field(
+        default=None,
+        description="Column with date value used as ending point",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='input-column',
+            source='input-schema',
+            editor='column-select'
+        )
+    )
 
-    start_value: str | None = None
-    end_value: str | None = None
+    start_value: str | None = Field(
+        default=None,
+        description="Value used as starting point"
+    )
+    end_value: str | None = Field(
+        default=None,
+        description="Value used as ending point"
+    )
 
     unit: Literal[
         "days",
@@ -20,9 +44,22 @@ class DateDiffConfig(BaseModel):
         "minutes",
         "seconds",
         "milliseconds",
-    ] = "days"
+    ] = Field(
+        default='days',
+        description="Unit of date to add",
+        json_schema_extra=build_schema(
+            type_='literal-value',
+            source='enum'
+        )
+    )
 
-    output_column: ColumnName
+    output_column: ColumnName = Field(
+        description="Column to save output into.",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='output-column'
+        )
+    )
 
     @model_validator(mode="after")
     def validate_configuration(self):

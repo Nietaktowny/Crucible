@@ -92,6 +92,11 @@ class MultiSourcesStep(Step):
         pass
     
 class StepProtocol(Protocol):
+    key: ClassVar[str]
+    name: ClassVar[str]
+    description: ClassVar[str]
+    config_model: ClassVar[type[BaseModel] | None]
+    
     def execute(self, data: FrameContext) -> FrameContext: ...
     
     def guards(self) -> list[StepGuardProtocol]: ...

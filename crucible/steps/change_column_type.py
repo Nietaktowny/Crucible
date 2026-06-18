@@ -5,9 +5,9 @@ from crucible.errors import (
     MissingColumnsGuard,
     LazyFrameInstanceGuard
 )
-
+from crucible.schema import build_schema
 import polars as pl
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 POLARS_TYPES = {
     "string": pl.String,
@@ -47,7 +47,9 @@ class ChangeColumnTypeConfig(BaseModel):
         "date",
         "datetime",
         "time",
-    ]]
+    ]] = Field(
+        description="Mapping from column name to new type.",
+    )
 
 class ChangeColumnTypeStep(Step):
     key = "change_column_type"

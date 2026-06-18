@@ -1,21 +1,36 @@
 from datetime import date
 
 import polars as pl
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Literal
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInstanceGuard
-
+from crucible.schema import build_schema
 
 class DatePeriodFilterConfig(BaseModel):
-    column: ColumnName
+    column: ColumnName = Field(
+        description="Column with dates to used for filtering",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='input-column',
+            source='input-schema',
+            editor='column-select'
+        )
+    )
 
     period: Literal[
         "current_year",
         "current_month",
         "current_day",
-    ]
+    ] = Field(
+        description="Period to filter to",
+        json_schema_extra=build_schema(
+            type_='literal-value',
+            editor='select',
+            source='enum'
+        )
+    )
 
 
 class DatePeriodFilterStep(Step):

@@ -1,18 +1,46 @@
 from typing import Literal
 
 import polars as pl
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInstanceGuard
-
+from crucible.schema import build_schema
 
 class ParseDateTimeConfig(BaseModel):
-    column: ColumnName
-    target_type: Literal["date", "datetime", "time"]
+    column: ColumnName = Field(
+        description="Column with datetime values to parse",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='input-column',
+            source='input-schema',
+            editor='column-select'
+        )
+    )
+    target_type: Literal["date", "datetime", "time"] = Field(
+        description="What type of value the column holds",
+        json_schema_extra=build_schema(
+            type_='literal-value',
+            editor='select',
+            source='enum'
+        )
+    )
 
-    format: str | None = None
-    output_column: ColumnName | None = None
+    format: str | None = Field(
+        description="Datetime string format to parse",
+        json_schema_extra=build_schema(
+            editor='text'
+        )
+    )
+    output_column: ColumnName | None = Field(
+        default=None,
+        description="Column with datetime values to parse",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='output-column',
+            editor='text'
+        )
+    )
 
     strict: bool = False
 

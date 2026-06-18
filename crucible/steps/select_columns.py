@@ -1,12 +1,20 @@
 from crucible.models import Step, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
-import polars as pl
-from pydantic import BaseModel
+from crucible.schema import build_schema
+from pydantic import BaseModel, Field
 
 from crucible.models import StepExecutionContext
 
 class SelectColumnsConfig(BaseModel):
-    columns: list[ColumnName]
+    columns: list[ColumnName] = Field(
+        description="Columns that should remain in the dataset.",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='input-column',
+            source='input-schema',
+            editor='column-multiselect'
+        )
+    )
 
 class SelectColumnsStep(Step):
     key = "select_columns"

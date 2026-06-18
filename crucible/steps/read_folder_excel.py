@@ -1,15 +1,22 @@
 from pathlib import Path
 
 import polars as pl
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from crucible.io import ExcelIOManager
 from crucible.models import StepConfig, Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingFileGuard
-
+from crucible.schema import build_schema
 
 class ReadFolderExcelConfig(BaseModel):
-    path: Path
+    path: Path = Field(
+        description="Path to the folder with Excel files to read",
+        json_schema_extra=build_schema(
+            type_='file-path',
+            source='filesystem',
+            editor='folder-picker'
+        )
+    )
     pattern: str = "*.xlsx"
     sheet: str | None = None
     recursive: bool = False

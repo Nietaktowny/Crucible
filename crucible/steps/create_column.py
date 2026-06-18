@@ -1,14 +1,20 @@
 import polars as pl
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from crucible.declarative import Expression, ExpressionBuilder
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import LazyFrameInstanceGuard
+from crucible.schema import build_schema
 
 class CreateColumnConfig(BaseModel):
     name: ColumnName
-    expr: Expression
-
+    expr: Expression = Field(
+        description="Expression used to create new column",
+        json_schema_extra=build_schema(
+            type_='expression',
+            role='output-column'
+        )
+    )
 
 class CreateColumnStep(Step):
     key = "create_column"

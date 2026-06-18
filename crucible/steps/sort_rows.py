@@ -1,14 +1,30 @@
 from typing import Literal
 
 import polars as pl
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
 from crucible.errors import MissingColumnsGuard, LazyFrameInstanceGuard
-
+from crucible.schema import build_schema
 class SortColumnConfig(BaseModel):
-    name: ColumnName
-    direction: Literal['asc', 'desc'] = 'asc'
+    name: ColumnName = Field(
+        description="Column to use for sorting",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='sort-column',
+            source='input-schema',
+            editor='column-select'
+        )
+    )
+    direction: Literal['asc', 'desc'] = Field(
+        default='asc',
+        description='Sorting direction',
+        json_schema_extra=build_schema(
+            type_='literal-value',
+            source='enum',
+            editor='select'
+        )
+    )
 
 class SortRowsConfig(BaseModel):
     columns: list[SortColumnConfig]

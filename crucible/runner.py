@@ -1,3 +1,5 @@
+
+from typing import Any
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -12,7 +14,8 @@ from crucible.workflow import (
     WorkflowCompiler,
     WorkflowLoader,
     WorkflowOptimizer,
-    WorkflowPreprocessor
+    WorkflowPreprocessor,
+    StepsRegistry
 )
 
 class WorkflowRunner:
@@ -77,3 +80,7 @@ def run_workflow(
         print_plan=print_plan,
         preview_limit=preview_limit
     )
+    
+def get_steps_schema() -> list[dict[str, Any]]:
+    registry = StepsRegistry()
+    return registry.list_step_keys()
