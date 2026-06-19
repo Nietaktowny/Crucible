@@ -42,7 +42,13 @@ class ParseDateTimeConfig(BaseModel):
         )
     )
 
-    strict: bool = False
+    strict: bool = Field(
+        default=False,
+        description="Enable strict mode",
+        json_schema_extra=build_schema(
+            editor='checkbox'
+        )
+    )
 
 
 class ParseDateTimeStep(Step):

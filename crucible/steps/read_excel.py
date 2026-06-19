@@ -1,4 +1,5 @@
 from pathlib import Path
+from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
@@ -18,10 +19,33 @@ class ReadExcelConfig(BaseModel):
             editor='file-picker'
         )
     )
-    sheet: str | None = None
-    context_store: bool = False
-    context_key: str | None = None
-    columns: list[ColumnName] | None = None
+    sheet: str | None = Field(
+        default=None,
+        description="Excel sheet to load data from",
+        json_schema_extra=build_schema(
+            editor='text'
+        )
+    )
+    context_store: bool = Field(
+        default=False,
+        description="Store in context",
+        json_schema_extra=build_schema(
+            editor='checkbox'
+        )
+    )
+    context_key: str | None = Field(
+        default_factory=lambda: str(uuid4()),
+        description="Unique key to identify frame in context store"
+    )
+    columns: list[ColumnName] | None = Field(
+        default=None,
+        description="List of columns to load. If not specified all columns will be loaded.",
+        json_schema_extra=build_schema(
+            type_='column-name',
+            role='input-column',
+            editor='column-multiselect'
+        )
+    )
 
 class ReadExcelStep(Step):
     key = "read_excel"

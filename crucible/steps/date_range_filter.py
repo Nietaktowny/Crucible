@@ -20,11 +20,37 @@ class DateRangeFilterConfig(BaseModel):
         )
     )
 
-    start: str
-    end: str
+    start: str = Field(
+        description="Range start",
+        json_schema_extra=build_schema(
+            editor='datetime-picker'
+        )
+    )
+    end: str = Field(
+        description="Range end",
+        json_schema_extra=build_schema(
+            editor='datetime-picker'
+        )
+    )
 
-    value_type: Literal["date", "datetime"] = "date"
-    closed: Literal["both", "left", "right", "none"] = "both"
+    value_type: Literal["date", "datetime"] = Field(
+        default="date",
+        description="What range value type to use for filtering",
+        json_schema_extra=build_schema(
+            type_='literal-value',
+            editor='select',
+            source='enum'
+        )
+    )
+    closed: Literal["both", "left", "right", "none"] = Field(
+        default="both",
+        description="How to treat range ends",
+        json_schema_extra=build_schema(
+            type_='literal-value',
+            editor='select',
+            source='enum'
+        )
+    )
 
 
 class DateRangeFilterStep(Step):

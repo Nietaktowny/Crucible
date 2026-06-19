@@ -19,10 +19,31 @@ class ReadCsvConfig(BaseModel):
             editor='file-picker'
         )
     )
-    separator: str = ','
-    infer_types: bool = False
-    context_store: bool = False
-    context_key: str = str(uuid4())
+    separator: str = Field(
+        default=',',
+        description="CSV separator to use",
+        json_schema_extra=build_schema(
+            editor='text'
+        )
+    )
+    infer_types: bool = Field(
+        default=False,
+        description="Auto infer column types",
+        json_schema_extra=build_schema(
+            editor='checkbox'
+        )
+    )
+    context_store: bool = Field(
+        default=False,
+        description="Store in context",
+        json_schema_extra=build_schema(
+            editor='checkbox'
+        )
+    )
+    context_key: str | None = Field(
+        default_factory=lambda: str(uuid4()),
+        description="Unique key to identify frame in context store"
+    )
 
 class ReadCsvStep(Step):
     key = "read_csv"

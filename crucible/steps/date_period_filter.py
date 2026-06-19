@@ -10,7 +10,7 @@ from crucible.schema import build_schema
 
 class DatePeriodFilterConfig(BaseModel):
     column: ColumnName = Field(
-        description="Column with dates to used for filtering",
+        description="Column to filter period in",
         json_schema_extra=build_schema(
             type_='column-name',
             role='input-column',
@@ -18,6 +18,7 @@ class DatePeriodFilterConfig(BaseModel):
             editor='column-select'
         )
     )
+    
 
     period: Literal[
         "current_year",
