@@ -8,6 +8,7 @@ from crucible.schema import build_schema
 
 class DropNullsConfig(BaseModel):
     columns: list[ColumnName] | None = Field(
+        default=None,
         description="List of columns to drop",
         json_schema_extra=build_schema(
             type_='column-name',

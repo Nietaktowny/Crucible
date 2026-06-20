@@ -27,6 +27,7 @@ class ParseDateTimeConfig(BaseModel):
     )
 
     format: str | None = Field(
+        default=None,
         description="Datetime string format to parse",
         json_schema_extra=build_schema(
             editor='text'
