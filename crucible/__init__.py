@@ -4,5 +4,5 @@ __all__ = [
     "WorkflowRunner",
     "WorkflowRunResult",
     "run_workflow",
-    get_steps_schema
+    "get_steps_schema"
 ]

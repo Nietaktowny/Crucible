@@ -6,10 +6,10 @@ from crucible.workflow.preprocessor import WorkflowPreprocessor
 from crucible.workflow.registry import StepsRegistry
 
 __all__ = [
-    WorkflowExecutor,
-    WorkflowCompiler,
-    WorkflowLoader,
-    WorkflowOptimizer,
-    WorkflowPreprocessor,
-    StepsRegistry
+    "WorkflowExecutor",
+    "WorkflowCompiler",
+    "WorkflowLoader",
+    "WorkflowOptimizer",
+    "WorkflowPreprocessor",
+    "StepsRegistry"
 ]
