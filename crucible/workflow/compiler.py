@@ -18,18 +18,41 @@ from rich.console import Console
 
 logger = logging.getLogger(__name__)
 class PlanBuilder:
+    """Builder class that is used to build execution plan out of steps treated as DAG nodes."""
     def __init__(self) -> None:
         self.nodes: list[StepExecutionPlan] = []
         self.edges: list[tuple[StepExecutionPlan, StepExecutionPlan]] = []
 
     def add_node(self, node: StepExecutionPlan) -> StepExecutionPlan:
+        """Add node to current plan.
+
+        Args:
+            node (StepExecutionPlan): Step execution plan to add.
+
+        Returns:
+            StepExecutionPlan: Added node.
+        """
         self.nodes.append(node)
         return node
 
     def predecessors(self, node: StepExecutionPlan) -> list[StepExecutionPlan]:
+        """Return all predecessors of specified step.
+
+        Args:
+            node (StepExecutionPlan): Step to search predecessors for.
+
+        Returns:
+            list[StepExecutionPlan]: List of steps that precede the specified step.
+        """
         return [source for source, target in self.edges if target == node]
 
     def add_edge(self, source: StepExecutionPlan, target: StepExecutionPlan) -> None:
+        """Add new edge from one step to another.
+
+        Args:
+            source (StepExecutionPlan): Source step.
+            target (StepExecutionPlan): Target step.
+        """
         self.edges.append((source, target))
 
     def insert_between(
@@ -38,6 +61,13 @@ class PlanBuilder:
         target: StepExecutionPlan,
         inserted: list[StepExecutionPlan],
     ) -> None:
+        """Insert steps between two nearby steps.
+
+        Args:
+            source (StepExecutionPlan): Original source step.
+            target (StepExecutionPlan): Original target step.
+            inserted (list[StepExecutionPlan]): List of steps to insert in between.
+        """
         self.edges.remove((source, target))
 
         previous = source
@@ -53,6 +83,12 @@ class PlanBuilder:
         target: StepExecutionPlan,
         inserted: StepExecutionPlan,
     ) -> None:
+        """Insert step before target.
+
+        Args:
+            target (StepExecutionPlan): Step that will become target for currently inserted step.
+            inserted (StepExecutionPlan): Step to insert.
+        """
         predecessors = self.predecessors(target)
 
         if not predecessors:
@@ -72,6 +108,12 @@ class PlanBuilder:
         target: StepExecutionPlan,
         inserted: list[StepExecutionPlan],
     ) -> None:
+        """Insert chain of steps before target step while maintaining relations between them.
+
+        Args:
+            target (StepExecutionPlan): Step that will become target for currently inserted steps.
+            inserted (list[StepExecutionPlan]): Chain of steps to insert.
+        """
         if not inserted:
             return
 
@@ -94,6 +136,11 @@ class PlanBuilder:
         self.add_edge(inserted[-1], target)
 
     def build_order(self) -> list[StepExecutionPlan]:
+        """Compile the DAG to lists of steps in correct order.
+
+        Returns:
+            list[StepExecutionPlan]: List of steps sorted in correct order.
+        """
         sorter = TopologicalSorter()
 
         for node in self.nodes:

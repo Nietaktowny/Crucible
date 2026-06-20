@@ -16,10 +16,63 @@ from crucible.declarative.expressions import ExpressionBuilder
 
 
 class ConditionBuilder:
+    """
+    Builds Polars expressions from declarative condition definitions.
+
+    The builder converts condition models such as
+    [`ComparisonCondition`][crucible.declarative.conditions.models.ComparisonCondition],
+    [`AndCondition`][crucible.declarative.conditions.models.AndCondition],
+    [`OrCondition`][crucible.declarative.conditions.models.OrCondition],
+    and [`NotCondition`][crucible.declarative.conditions.models.NotCondition]
+    into executable `polars.Expr` objects.
+
+    This component is used by filtering steps to translate user-defined
+    workflow conditions into expressions that can be evaluated by Polars.
+
+    Example:
+        ```python
+        condition = ComparisonCondition(
+            left=ColumnExpression(column="country"),
+            operator="=",
+            right=ValueExpression(value="PL"),
+        )
+
+        expr = ConditionBuilder().build(condition)
+        ```
+    """
+
     def __init__(self) -> None:
+        """
+        Initialize the condition builder.
+
+        Internally creates an
+        [`ExpressionBuilder`][crucible.declarative.expressions.ExpressionBuilder]
+        used to translate condition operands into Polars expressions.
+        """
         self.expression_builder = ExpressionBuilder()
 
     def build(self, condition: Condition) -> pl.Expr:
+        """
+        Convert a declarative condition into a Polars expression.
+
+        Supported condition types:
+
+        - comparison conditions
+        - logical AND conditions
+        - logical OR conditions
+        - logical NOT conditions
+
+        Args:
+            condition:
+                Declarative condition definition.
+
+        Returns:
+            Equivalent Polars expression.
+
+        Raises:
+            TypeError:
+                If the condition type is not supported.
+        """
         if isinstance(condition, ComparisonCondition):
             return self._build_comparison(condition)
 
@@ -37,6 +90,35 @@ class ConditionBuilder:
         )
 
     def _build_comparison(self, condition: ComparisonCondition) -> pl.Expr:
+        """
+        Build a comparison expression.
+
+        Supported operators:
+
+        - `=`
+        - `!=`
+        - `>`
+        - `>=`
+        - `<`
+        - `<=`
+        - `contains`
+        - `starts_with`
+        - `ends_with`
+        - `is_null`
+        - `is_not_null`
+        - `is_in`
+
+        Args:
+            condition:
+                Comparison condition definition.
+
+        Returns:
+            Equivalent Polars expression.
+
+        Raises:
+            ValueError:
+                If an unsupported operator is provided.
+        """
         left = self.expression_builder.build(condition.left)
         right = (
             self.expression_builder.build(condition.right)
@@ -85,6 +167,23 @@ class ConditionBuilder:
                 )
 
     def _combine(self, conditions: list[Condition], combiner) -> pl.Expr:
+        """
+        Combine multiple conditions using a logical operator.
+
+        Args:
+            conditions:
+                Child conditions to combine.
+
+            combiner:
+                Logical operator used to combine generated expressions.
+
+        Returns:
+            Combined Polars expression.
+
+        Raises:
+            ValueError:
+                If no child conditions are provided.
+        """
         if not conditions:
             raise ValueError(
                 "Logical condition requires at least one child condition."
@@ -96,6 +195,17 @@ class ConditionBuilder:
         )
 
     def _require_right(self, condition: ComparisonCondition) -> None:
+        """
+        Validate that a comparison operator has a right operand.
+
+        Args:
+            condition:
+                Comparison condition to validate.
+
+        Raises:
+            ValueError:
+                If the operator requires a right operand but none was supplied.
+        """
         if condition.right is None:
             raise ValueError(
                 f"Operator '{condition.operator}' requires right expression."

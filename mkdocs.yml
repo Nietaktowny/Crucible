@@ -15,7 +15,11 @@ nav:
 
 plugins:
   - search
-  - mkdocstrings
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            filters: []
   - mermaid2
 
 markdown_extensions:

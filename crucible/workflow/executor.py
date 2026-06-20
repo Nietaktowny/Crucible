@@ -14,8 +14,27 @@ from crucible.models import (
 logger = logging.getLogger(__name__)
 
 class WorkflowExecutor:
+    """Workflow execution engine. It's a class that should
+    iterate over compiled execution plan and collect results.
+    It also is responsible for calling runtime guards.
+    
+    Responsibilities:
+    
+    - Running steps and passing steps results between them
+    - Preparing run statistics and context information
+    - Calling runtime guards defined in steps
+    - Returning WorkflowRunResult
+    """
      
     def run(self, workflow_execution_plan: WorkflowExecutionPlan) -> WorkflowRunResult:
+        """Run the workflow based on workflow execution plan.
+
+        Args:
+            workflow_execution_plan (WorkflowExecutionPlan): Compiled workflow execution plan to run.
+
+        Returns:
+            WorkflowRunResult: Result of the run packed together with runtime statistics and context.
+        """
         result = WorkflowRunResult(name=workflow_execution_plan.workflow.name, status=WorkflowStatus.RUNNING)
         data: FrameContext | None = None
         context = StepExecutionContext()

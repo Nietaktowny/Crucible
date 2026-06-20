@@ -21,14 +21,6 @@ from crucible.workflow import (
 class WorkflowRunner:
     """
     Public programmatic interface for running Crucible workflows.
-
-    This class is intended for:
-    - crucible-server
-    - future desktop GUI
-    - tests
-    - external Python users
-
-    CLI should only be a thin wrapper over this.
     """
 
     def __init__(
@@ -50,6 +42,17 @@ class WorkflowRunner:
             inspect: bool = False,
             preview_limit: int = 500
         ) -> WorkflowRunResult:
+        """Run the workflow from file.
+
+        Args:
+            workflow_path (Path): Path to workflow configuration file.
+            print_plan (bool, optional): If true, execution plan will be pretty printed to console. Defaults to False.
+            inspect (bool, optional): Enables auto inserting inspect step at the end which prepares preview. Defaults to False.
+            preview_limit (int, optional): Max number of rows to include in workflow run result preview. Defaults to 500.
+
+        Returns:
+            WorkflowRunResult: Result of the workflow. 
+        """
         workflow_path = Path(workflow_path)
         config = WorkflowRunConfig(
             inspect=inspect,

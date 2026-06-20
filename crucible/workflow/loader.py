@@ -10,6 +10,17 @@ from crucible.models import Workflow
 logger = logging.getLogger(__name__)
 class WorkflowLoader:
     def load(self, path: str | Path) -> Workflow:
+        """Load and parse Workflow configuration from file.
+
+        Args:
+            path (str | Path): Path to workflow configuration file.
+
+        Raises:
+            FileNotFoundError: If workflow file is not found on specified path.
+
+        Returns:
+            Workflow: Parsed Workflow model.
+        """
         path = Path(path)
 
         if not path.exists():
@@ -30,6 +41,17 @@ class WorkflowLoader:
         return workflow
 
     def load_raw(self, path: str | Path) -> dict:
+        """Load workflow configuration file as raw dictionary.
+
+        Args:
+            path (str | Path): Path to workflow configuration file.
+
+        Raises:
+            FileNotFoundError: If workflow file is not found on specified path.
+
+        Returns:
+            dict: Workflow configuration as dictionary.
+        """
         path = Path(path)
 
         if not path.exists():
@@ -37,8 +59,21 @@ class WorkflowLoader:
 
         return self._read_file(path)
 
-
     def save_raw(self, raw_data: dict, path: str | Path):
+        """Save raw Workflow data in dictionary format to YAML or JSON file.
+
+        Supported suffixes:
+        
+        - .yaml, .yml
+        - .json
+
+        Args:
+            raw_data (dict): Raw data to save.
+            path (str | Path): Path of output file.
+
+        Raises:
+            ValueError: If suffix indicates unsupported workflow file format.
+        """
         path = Path(path)
         suffix = path.suffix.lower()
 
@@ -70,6 +105,22 @@ class WorkflowLoader:
         )
 
     def _read_file(self, path: Path) -> dict:
+        """Read text workflow configuration file into dict.
+
+        Supported formats:
+
+        - .yaml, .yml
+        - .json
+        
+        Args:
+            path (Path): Path to file.
+
+        Raises:
+            ValueError: If file suffix indicates unsupported workflow configuration file format.
+
+        Returns:
+            dict: Parsed text data as dictionary.
+        """
         suffix = path.suffix.lower()
 
         if suffix in {".yaml", ".yml"}:
@@ -84,6 +135,20 @@ class WorkflowLoader:
         )
         
     def save(self, workflow: Workflow, path: str | Path):
+        """Save Workflow configuration to text file.
+        
+        Supported formats:
+        
+        - .yaml, .yml
+        - .json
+
+        Args:
+            workflow (Workflow): Workflow configuration to save.
+            path (str | Path): Output file path.
+
+        Raises:
+            ValueError: If file suffix indicates unsupported workflow configuration file format.
+        """
         path = Path(path)
         suffix = path.suffix.lower()
 
