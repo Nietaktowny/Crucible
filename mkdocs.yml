@@ -2,7 +2,13 @@ site_name: Crucible
 site_description: Local-first workflow engine for data transformation and reporting
 repo_url: https://github.com/Nietaktowny/Crucible
 theme:
+  palette:
+    scheme: slate
+    primary: #0F172A
+    secondary: #F59E0B
   name: material
+  logo: assets/crucible-logo.png
+  favicon: assets/favicon.ico
 
 nav:
   - Home: index.md
@@ -28,3 +34,6 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:mermaid2.fence_mermaid_custom
+
+extra_css:
+  - stylesheets/extra.css

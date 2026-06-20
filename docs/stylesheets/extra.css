@@ -1,0 +1,4 @@
+.md-header__button.md-logo img {
+    transform: scale(3);
+    transform-origin: center;
+}
