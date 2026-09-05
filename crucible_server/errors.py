@@ -5,22 +5,34 @@ from fastapi.responses import JSONResponse
 
 
 class InvalidWorkflowNameError(Exception):
+    """Raised when a workflow name fails the store's naming rules."""
+
     pass
 
 
 class WorkflowNotFoundError(Exception):
+    """Raised when a requested workflow does not exist in the store."""
+
     def __init__(self, workflow_name: str) -> None:
         self.workflow_name = workflow_name
         super().__init__(f"Workflow not found: {workflow_name}")
 
 
 class WorkflowAlreadyExistsError(Exception):
+    """Raised when creating a workflow whose name is already taken."""
+
     def __init__(self, workflow_name: str) -> None:
         self.workflow_name = workflow_name
         super().__init__(f"Workflow already exists: {workflow_name}")
 
 
 class WorkflowRunError(Exception):
+    """Raised when a workflow run fails during execution.
+
+    Wraps the underlying step failure with the workflow and step names so
+    API responses can point the caller at exactly where execution stopped.
+    """
+
     def __init__(self, workflow_name: str, step_name: str, reason: str) -> None:
         self.workflow_name = workflow_name
         self.reason = reason
@@ -28,6 +40,16 @@ class WorkflowRunError(Exception):
 
 
 def register_exception_handlers(app: FastAPI) -> None:
+    """Register JSON error handlers for the domain exceptions above.
+
+    Each handler translates an internal exception into a stable JSON error
+    shape (`error`, `message`, plus any exception-specific fields) with an
+    appropriate HTTP status code, so API consumers never see a raw Python
+    traceback for these expected failure modes.
+
+    Args:
+        app (FastAPI): Application instance to attach the handlers to.
+    """
     @app.exception_handler(InvalidWorkflowNameError)
     async def invalid_workflow_name_handler(
         request: Request,

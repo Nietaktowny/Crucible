@@ -9,6 +9,14 @@ from crucible.errors import MissingColumnsGuard
 from crucible.schema import build_schema
 
 class ReplaceValuesConfig(BaseModel):
+    """
+    Configuration for [`ReplaceValuesStep`][crucible.steps.replace_values.ReplaceValuesStep].
+
+    Supports exactly one of two mutually exclusive replacement modes: a
+    single `old`/`new` pair, or a `mapping` of multiple old-to-new values.
+    Providing both, or neither, is rejected by `validate_configuration`.
+    """
+
     column: ColumnName = Field(
         description="Column to replace values in",
         json_schema_extra=build_schema(
@@ -42,12 +50,29 @@ class ReplaceValuesConfig(BaseModel):
         return self
 
 class ReplaceValuesStep(Step):
+    """
+    Step that replaces values within a single column.
+
+    Uses Polars' `replace` expression, either with a `mapping` of multiple
+    old-to-new values or with a single `old`/`new` pair, and writes the
+    result back into the same column name.
+    """
+
     key = "replace_values"
     name = "Replace Values"
     description = "Replace values in a column."
     config_model = ReplaceValuesConfig
 
     def guards(self) -> list[StepGuardProtocol]:
+        """
+        Return guards required before replacing values.
+
+        Returns:
+            A [`LazyFrameInstanceGuard`][crucible.errors.LazyFrameInstanceGuard]
+            ensuring the input is a Polars `LazyFrame`, and a
+            [`MissingColumnsGuard`][crucible.errors.MissingColumnsGuard]
+            ensuring the configured column exists in the frame schema.
+        """
         return [
             LazyFrameInstanceGuard(),
             MissingColumnsGuard([self.config.column]),
@@ -58,6 +83,22 @@ class ReplaceValuesStep(Step):
         data: FrameContext,
         context: StepExecutionContext = None,
     ) -> FrameContext:
+        """
+        Replace values in the configured column.
+
+        Uses `mapping` when configured, otherwise falls back to the single
+        `old`/`new` pair.
+
+        Args:
+            data:
+                Frame context whose `df` has values replaced.
+
+            context:
+                Unused execution context. Present for interface compatibility.
+
+        Returns:
+            New frame context wrapping the frame with values replaced.
+        """
 
         if self.config.mapping:
             expression = (

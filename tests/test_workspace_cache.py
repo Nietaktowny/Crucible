@@ -3,8 +3,6 @@ from __future__ import annotations
 import hashlib
 import json
 
-import polars as pl
-
 from crucible_workspace import PreviewCache, CachedPreview
 
 
@@ -37,12 +35,10 @@ def test_save_preview_stores_cached_preview_metadata(
     )
     cache = PreviewCache()
 
-    preview = pl.DataFrame(
-        {
-            "name": ["Alice", "Bob"],
-            "amount": [10, 20],
-        }
-    )
+    preview = [
+        {"name": "Alice", "amount": 10},
+        {"name": "Bob", "amount": 20},
+    ]
 
     workflow_hash = cache.save_preview(
         RAW_WORKFLOW_TEXT,
@@ -85,12 +81,7 @@ def test_get_preview_returns_cached_preview_model(
     )
     cache = PreviewCache()
 
-    preview = pl.DataFrame(
-        {
-            "name": ["Alice"],
-            "amount": [10],
-        }
-    )
+    preview = [{"name": "Alice", "amount": 10}]
 
     cache.save_preview(
         RAW_WORKFLOW_TEXT,
@@ -122,12 +113,10 @@ def test_get_preview_frame_returns_polars_dataframe(
     )
     cache = PreviewCache()
 
-    preview = pl.DataFrame(
-        {
-            "name": ["Alice", "Bob"],
-            "amount": [10, 20],
-        }
-    )
+    preview = [
+        {"name": "Alice", "amount": 10},
+        {"name": "Bob", "amount": 20},
+    ]
 
     cache.save_preview(RAW_WORKFLOW_TEXT, preview)
 
@@ -164,7 +153,7 @@ def test_has_preview_returns_true_when_preview_exists(
     )
     cache = PreviewCache()
 
-    cache.save_preview(RAW_WORKFLOW_TEXT, pl.DataFrame({"x": [1]}))
+    cache.save_preview(RAW_WORKFLOW_TEXT, [{"x": 1}])
 
     assert cache.has_preview(RAW_WORKFLOW_TEXT) is True
 
@@ -192,7 +181,7 @@ def test_delete_preview_deletes_existing_preview(
     )
     cache = PreviewCache()
 
-    cache.save_preview(RAW_WORKFLOW_TEXT, pl.DataFrame({"x": [1]}))
+    cache.save_preview(RAW_WORKFLOW_TEXT, [{"x": 1}])
 
     was_deleted = cache.delete_preview(RAW_WORKFLOW_TEXT)
 
@@ -223,8 +212,8 @@ def test_clear_deletes_all_preview_files(
     )
     cache = PreviewCache()
 
-    cache.save_preview("workflow 1", pl.DataFrame({"x": [1]}))
-    cache.save_preview("workflow 2", pl.DataFrame({"y": [2]}))
+    cache.save_preview("workflow 1", [{"x": 1}])
+    cache.save_preview("workflow 2", [{"y": 2}])
 
     deleted_count = cache.clear()
 
@@ -257,11 +246,11 @@ def test_same_workflow_text_with_outer_whitespace_uses_same_hash(
 
     first_hash = cache.save_preview(
         "  steps:\n  - key: test  ",
-        pl.DataFrame({"x": [1]}),
+        [{"x": 1}],
     )
     second_hash = cache.save_preview(
         "steps:\n  - key: test",
-        pl.DataFrame({"x": [2]}),
+        [{"x": 2}],
     )
 
     cached_preview = cache.get_preview("steps:\n  - key: test")

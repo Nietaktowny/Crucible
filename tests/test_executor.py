@@ -252,8 +252,8 @@ def test_run_passes_data_between_steps() -> None:
     assert result.error is None
 
     assert result.preview is not None
-    assert result.preview.shape == (3, 1)
-    assert result.preview["value"].to_list() == [1, 2, 3]
+    assert len(result.preview) == 3
+    assert [row["value"] for row in result.preview] == [1, 2, 3]
     assert result.row_count == 3
 
 
@@ -322,7 +322,7 @@ def test_run_returns_successful_workflow_result() -> None:
     assert result.error is None
 
     assert result.preview is not None
-    assert result.preview["value"].to_list() == [1, 2, 3]
+    assert [row["value"] for row in result.preview] == [1, 2, 3]
     assert result.row_count == 3
 
     assert result.statistics.total_steps == 1

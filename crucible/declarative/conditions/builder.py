@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from functools import reduce
 from operator import and_, or_
+from typing import Callable
 
 import polars as pl
 
@@ -166,7 +167,7 @@ class ConditionBuilder:
                     f"Unsupported comparison operator: {condition.operator}"
                 )
 
-    def _combine(self, conditions: list[Condition], combiner) -> pl.Expr:
+    def _combine(self, conditions: list[Condition], combiner: Callable[[pl.Expr, pl.Expr], pl.Expr]) -> pl.Expr:
         """
         Combine multiple conditions using a logical operator.
 

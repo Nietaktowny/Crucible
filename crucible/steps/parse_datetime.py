@@ -8,6 +8,12 @@ from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInst
 from crucible.schema import build_schema
 
 class ParseDateTimeConfig(BaseModel):
+    """Configuration for parsing a string column into `Date`, `Datetime`, or `Time` values.
+
+    When `format` is left unset, Polars auto-detects the format; `strict`
+    controls whether unparseable values raise or are converted to null.
+    """
+
     column: ColumnName = Field(
         description="Column with datetime values to parse",
         json_schema_extra=build_schema(
@@ -53,12 +59,28 @@ class ParseDateTimeConfig(BaseModel):
 
 
 class ParseDateTimeStep(Step):
+    """Parse a `String` column into `Date`, `Datetime`, or `Time` values via `Expr.str.strptime`.
+
+    The target dtype and the optional `chrono`-style `format` string used for
+    parsing are taken from the config; when `strict` is true, values that
+    fail to parse raise an error instead of becoming null. When
+    `output_column` is not set, the source column is overwritten in place.
+    """
+
     key = "parse_datetime"
     name = "Parse Date/Time"
     description = "Parse a text column into date, datetime, or time."
     config_model = ParseDateTimeConfig
 
     def guards(self) -> list[StepGuardProtocol]:
+        """Guard against a non-lazy frame, a missing input column, or a non-`String` column.
+
+        Returns:
+            List containing a [`LazyFrameInstanceGuard`][crucible.errors.LazyFrameInstanceGuard],
+            a [`MissingColumnsGuard`][crucible.errors.MissingColumnsGuard] for the configured
+            column, and a [`ColumnsTypeGuard`][crucible.errors.ColumnsTypeGuard] requiring it to
+            be `String`.
+        """
         return [
             LazyFrameInstanceGuard(),
             MissingColumnsGuard([self.config.column]),
@@ -70,6 +92,19 @@ class ParseDateTimeStep(Step):
         data: FrameContext,
         context: StepExecutionContext = None,
     ) -> FrameContext:
+        """Parse the configured string column and write the result to the output column.
+
+        Args:
+            data:
+                Current frame context whose `df` must contain the configured
+                `column` as a `String` column.
+
+            context:
+                Unused execution context.
+
+        Returns:
+            Updated frame context with the resulting lazy frame.
+        """
         dtype = self._get_dtype()
         output_column = self.config.output_column or self.config.column
 

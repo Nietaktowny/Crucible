@@ -3,8 +3,9 @@ from enum import StrEnum
 from abc import ABC, abstractmethod
 from uuid import uuid4
 from datetime import datetime
+import traceback
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_serializer
 import polars as pl
 
 
@@ -20,6 +21,8 @@ class StepConfig(BaseModel):
     """
 
     model_config = ConfigDict(extra="allow")
+    
+    step_id: str = Field(default_factory=lambda: str(uuid4()))
 
     key: str
     """Registry key identifying which step implementation should be used."""
@@ -409,6 +412,9 @@ class WorkflowErrorContext(BaseModel):
     frame_schema: dict[str, str] | None = None
     """Schema visible at the moment of failure, if available."""
 
+    @field_serializer("error", mode='plain')
+    def error_to_str(self, value: Exception) -> str:
+        return "".join(traceback.format_exception(value))
 
 class WorkflowRunResult(BaseModel):
     """
@@ -429,7 +435,7 @@ class WorkflowRunResult(BaseModel):
     status: WorkflowStatus = WorkflowStatus.CREATED
     """Final or current workflow run status."""
 
-    preview: pl.DataFrame | None = None
+    preview: list[dict[str, Any]] | None = None
     """Optional preview dataframe collected from the final result."""
 
     row_count: int | None = None

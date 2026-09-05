@@ -7,7 +7,7 @@ import polars as pl
 
 from crucible.models import (
     WorkflowRunResult,
-    WorkflowRunConfig
+    WorkflowRunConfig,
 )
 from crucible.workflow import (
     WorkflowExecutor,

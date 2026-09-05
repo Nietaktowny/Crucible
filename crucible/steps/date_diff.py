@@ -8,6 +8,13 @@ from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInst
 from crucible.schema import build_schema
 
 class DateDiffConfig(BaseModel):
+    """Configuration for computing the difference between two date/datetime endpoints.
+
+    Each endpoint (start/end) must be provided as either a column reference or a
+    literal string value, never both, and never neither; this is enforced by
+    `validate_configuration`.
+    """
+
     start_column: ColumnName | None = Field(
         default=None,
         description="Column with date value used as starting point",
@@ -63,6 +70,12 @@ class DateDiffConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_configuration(self):
+        """Ensure each endpoint has exactly one source and both endpoints are provided.
+
+        Raises:
+            ValueError: If a start or end endpoint is missing, or if both a
+                column and a literal value are supplied for the same endpoint.
+        """
         has_start = self.start_column is not None or self.start_value is not None
         has_end = self.end_column is not None or self.end_value is not None
 
@@ -82,12 +95,33 @@ class DateDiffConfig(BaseModel):
 
 
 class DateDiffStep(Step):
+    """Compute `end - start` between two date/datetime endpoints and express it in a chosen unit.
+
+    Each endpoint is resolved either from a column or by parsing a literal
+    string value with `str.strptime` (non-strict, format auto-detected), and
+    the resulting duration is converted to whole days, hours, minutes,
+    seconds, or milliseconds and written to `output_column`.
+    """
+
     key = "date_diff"
     name = "Date Difference"
     description = "Calculate difference between two date or datetime values."
     config_model = DateDiffConfig
 
     def guards(self) -> list[StepGuardProtocol]:
+        """Guard the frame and any endpoint columns that were configured.
+
+        Only endpoints backed by a column are checked; endpoints backed by a
+        literal value are skipped since there is no column to validate.
+
+        Returns:
+            Empty list when neither endpoint uses a column, otherwise a list
+            containing a [`LazyFrameInstanceGuard`][crucible.errors.LazyFrameInstanceGuard],
+            a [`MissingColumnsGuard`][crucible.errors.MissingColumnsGuard] for the
+            configured endpoint columns, and a
+            [`ColumnsTypeGuard`][crucible.errors.ColumnsTypeGuard] requiring them to be
+            `Date` or `Datetime`.
+        """
         columns_to_check = {}
         if self.config.start_column:
             columns_to_check[self.config.start_column] = ["Date", "Datetime"]
@@ -108,6 +142,19 @@ class DateDiffStep(Step):
         data: FrameContext,
         context: StepExecutionContext = None,
     ) -> FrameContext:
+        """Resolve both endpoints, subtract them, and write the converted duration.
+
+        Args:
+            data:
+                Current frame context whose `df` must contain any configured
+                endpoint columns as `Date` or `Datetime` columns.
+
+            context:
+                Unused execution context.
+
+        Returns:
+            Updated frame context with the resulting lazy frame.
+        """
         start_expr = self._build_value_expression(
             column=self.config.start_column,
             value=self.config.start_value,

@@ -1,3 +1,11 @@
+"""Built-in workflow step implementations.
+
+This package collects all concrete `Step` implementations shipped with
+Crucible (reading/writing files, column and row transformations, joins,
+aggregations, etc.) and re-exports them for use by the step registry and
+workflow compiler.
+"""
+
 from crucible.steps.select_columns import SelectColumnsStep
 from crucible.steps.change_column_type import ChangeColumnTypeStep
 from crucible.steps.filter_rows import FilterRowsStep

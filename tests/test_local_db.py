@@ -23,6 +23,24 @@ def storage(tmp_path, monkeypatch) -> RuntimeDataStorage:
     return RuntimeDataStorage()
 
 
+def test_creates_runtime_data_dir_when_missing(tmp_path, monkeypatch) -> None:
+    # Regression test: on a fresh install (or a fresh Docker volume), the
+    # runtime data directory doesn't exist yet — RuntimeDataStorage must
+    # create it itself rather than assuming something else already has.
+    runtime_dir = tmp_path / "runtime"
+    assert not runtime_dir.exists()
+
+    monkeypatch.setattr(
+        "crucible_workspace.runtime.local_db.get_runtime_data_dir",
+        lambda: runtime_dir,
+    )
+
+    RuntimeDataStorage()
+
+    assert runtime_dir.is_dir()
+    assert (runtime_dir / "crucible.sqlite").exists()
+
+
 def make_statistics(
     *,
     started_at: datetime | None = None,

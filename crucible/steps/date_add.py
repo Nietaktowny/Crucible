@@ -8,6 +8,8 @@ from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInst
 from crucible.schema import build_schema
 
 class DateAddConfig(BaseModel):
+    """Configuration for adding or subtracting a fixed duration from a date/datetime column."""
+
     column: ColumnName = Field(
         description="Column with date to use as input",
         json_schema_extra=build_schema(
@@ -45,12 +47,27 @@ class DateAddConfig(BaseModel):
 
 
 class DateAddStep(Step):
+    """Add a signed duration (days, hours, minutes, seconds, or milliseconds) to a date/datetime column.
+
+    The value is added using `pl.duration`, so a negative `value` subtracts the
+    duration instead. When `output_column` is not set, the source column is
+    overwritten in place.
+    """
+
     key = "date_add"
     name = "Date Add"
     description = "Add or subtract duration from a date or datetime column."
     config_model = DateAddConfig
 
     def guards(self) -> list[StepGuardProtocol]:
+        """Guard against a non-lazy frame, a missing input column, or a wrong column type.
+
+        Returns:
+            List containing a [`LazyFrameInstanceGuard`][crucible.errors.LazyFrameInstanceGuard],
+            a [`MissingColumnsGuard`][crucible.errors.MissingColumnsGuard] for the configured
+            column, and a [`ColumnsTypeGuard`][crucible.errors.ColumnsTypeGuard] requiring it to
+            be `Date` or `Datetime`.
+        """
         return [
             LazyFrameInstanceGuard(),
             MissingColumnsGuard([self.config.column]),
@@ -62,6 +79,19 @@ class DateAddStep(Step):
         data: FrameContext,
         context: StepExecutionContext = None,
     ) -> FrameContext:
+        """Add the configured duration to the source column and write it to the output column.
+
+        Args:
+            data:
+                Current frame context whose `df` must contain the configured
+                `column` as a `Date` or `Datetime` column.
+
+            context:
+                Unused execution context.
+
+        Returns:
+            Updated frame context with the resulting lazy frame.
+        """
         output_column = self.config.output_column or self.config.column
 
         expression = (
