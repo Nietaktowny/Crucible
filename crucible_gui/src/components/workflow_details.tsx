@@ -40,11 +40,12 @@ import { WorkflowGraph } from "@/components/workflow_graph";
 import { StepEdit } from "@/components/step_edit";
 import { PreviewTable } from "@/components/preview_table";
 import { StepLibrary } from "@/components/step_library";
+import { ErrorTraceback } from "@/components/error_traceback";
 import {
   setValueAtPath,
   type ParameterPath,
 } from "@/components/step_editor/model";
-import { getErrorMessage, formatNumber } from "@/lib/format";
+import { getErrorMessage, getRunErrorBody, formatNumber } from "@/lib/format";
 
 type WorkflowDetailsProps = {
   selectedWorkflow: string | null;

@@ -1,7 +1,13 @@
 # src/crucible_server/errors.py
 
+import traceback
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.types import ASGIApp
+
+from crucible.models import WorkflowErrorContext
 
 
 class InvalidWorkflowNameError(Exception):
@@ -29,14 +35,18 @@ class WorkflowAlreadyExistsError(Exception):
 class WorkflowRunError(Exception):
     """Raised when a workflow run fails during execution.
 
-    Wraps the underlying step failure with the workflow and step names so
-    API responses can point the caller at exactly where execution stopped.
+    Wraps the underlying step failure with the workflow name and the full
+    error context (step, frame schema, and formatted traceback) so API
+    responses can point the caller at exactly where and why execution
+    stopped.
     """
 
-    def __init__(self, workflow_name: str, step_name: str, reason: str) -> None:
+    def __init__(self, workflow_name: str, error_context: WorkflowErrorContext) -> None:
         self.workflow_name = workflow_name
-        self.reason = reason
-        super().__init__(f"Workflow run failed: {workflow_name}:{step_name} - {reason}")
+        self.error_context = error_context
+        super().__init__(
+            f"Workflow run failed: {workflow_name}:{error_context.step_name} - {error_context.error}"
+        )
 
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -96,12 +106,52 @@ def register_exception_handlers(app: FastAPI) -> None:
         request: Request,
         exc: WorkflowRunError,
     ) -> JSONResponse:
+        context = exc.error_context
+
         return JSONResponse(
             status_code=500,
             content={
                 "error": "workflow_run_failed",
                 "message": str(exc),
                 "workflow_name": exc.workflow_name,
-                "reason": exc.reason,
+                "step_id": context.step_id,
+                "step_name": context.step_name,
+                "frame_schema": context.frame_schema,
+                "traceback": context.model_dump(mode="json")["error"],
             },
         )
+
+class UnhandledErrorMiddleware(BaseHTTPMiddleware):
+    """Turns any exception no domain handler recognizes into a JSON 500.
+
+    Registering a handler for the bare `Exception` type via
+    `@app.exception_handler` would *not* fix this: Starlette special-cases
+    that handler into the outermost `ServerErrorMiddleware`, which sits
+    *outside* `CORSMiddleware`, so its response is sent without CORS
+    headers — browsers then report a blocked cross-origin request instead
+    of the actual server error. This middleware must be added to the app
+    *before* `CORSMiddleware` (Starlette's `add_middleware` prepends, so
+    the last one added ends up outermost — adding this one first nests it
+    inside `CORSMiddleware`) and catches the exception itself, letting
+    `CORSMiddleware` see a normal response and add its headers as usual.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        super().__init__(app)
+
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: RequestResponseEndpoint,
+    ) -> JSONResponse:
+        try:
+            return await call_next(request)
+        except Exception as exc:
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": "internal_server_error",
+                    "message": str(exc) or exc.__class__.__name__,
+                    "traceback": "".join(traceback.format_exception(exc)),
+                },
+            )

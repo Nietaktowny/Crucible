@@ -52,8 +52,7 @@ class WorkflowRunService:
         if result.error is not None:
             raise WorkflowRunError(
                 workflow_name=workflow_name,
-                step_name=result.error.step_name,
-                reason=str(result.error.error),
+                error_context=result.error,
             ) from result.error.error
 
         if result.preview is not None:

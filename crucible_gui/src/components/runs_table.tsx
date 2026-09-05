@@ -13,7 +13,6 @@ import {
   Title,
 } from "@mantine/core";
 import {
-  IconAlertTriangle,
   IconChevronRight,
   IconHistory,
 } from "@tabler/icons-react";
@@ -22,7 +21,8 @@ import type { WorkflowRunResult } from "@/types/workflows";
 import { ClientContext } from "@/context/api_context";
 import { StatusBadge } from "@/components/status_badge";
 import { DynamicTable } from "@/components/dynamic_table";
-import { formatDuration, formatNumber } from "@/lib/format";
+import { ErrorTraceback } from "@/components/error_traceback";
+import { formatDuration, formatNumber, getTracebackHeadline } from "@/lib/format";
 
 type RunsTableProps = {
   workflow?: string;
@@ -205,30 +205,11 @@ function RunDetail({ run }: { run: WorkflowRunResult }) {
       </Table>
 
       {run.error && (
-        <Stack
-          gap={6}
-          p="md"
-          style={{
-            borderRadius: "var(--mantine-radius-md)",
-            border: "1px solid rgba(224, 49, 49, 0.4)",
-            background: "rgba(224, 49, 49, 0.08)",
-          }}
-        >
-          <Group gap={6}>
-            <IconAlertTriangle size={16} color="#e03131" />
-            <Text fw={700} size="sm" c="red.4">
-              Failed at step: {run.error.step_name || run.error.step_id}
-            </Text>
-          </Group>
-          <Text
-            component="pre"
-            size="xs"
-            c="red.2"
-            style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}
-          >
-            {run.error.error}
-          </Text>
-        </Stack>
+        <ErrorTraceback
+          stepName={run.error.step_name || run.error.step_id}
+          message={getTracebackHeadline(run.error.error)}
+          traceback={run.error.error}
+        />
       )}
 
       {run.preview && run.preview.length > 0 && (
