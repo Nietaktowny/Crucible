@@ -9,6 +9,17 @@ from crucible.errors import MissingFileGuard
 from crucible.schema import build_schema
 
 class ReadFolderCsvConfig(BaseModel):
+    """
+    Configuration for reading and concatenating multiple CSV files from a
+    folder into a single Polars frame.
+
+    Files are matched against `pattern` (optionally recursively) and
+    concatenated using `how="diagonal_relaxed"`, so files with mismatched or
+    missing columns are still combined rather than raising an error. When
+    `add_source_file` is enabled, a column named `source_column` records the
+    originating file name for each row.
+    """
+
     path: Path = Field(
         description="Path to the folder with CSV files to read",
         json_schema_extra=build_schema(
@@ -29,12 +40,28 @@ class ReadFolderCsvConfig(BaseModel):
     context_key: str = str(uuid4())
     
 class ReadFolderCsvStep(Step):
+    """
+    Step that reads and concatenates every matching CSV file in a folder.
+
+    Globs the configured folder for files matching `pattern` (recursively
+    when `recursive` is set), reads each one lazily with `polars.scan_csv`,
+    optionally tags rows with their source file name, and concatenates the
+    results diagonally into a single frame. Raises `FileNotFoundError` if no
+    files match.
+    """
+
     key = "read_folder_csv"
     name = "Read CSV Folder"
     description = "Read and concatenate CSV files from a folder."
     config_model = ReadFolderCsvConfig
 
     def guards(self) -> list[StepGuardProtocol]:
+        """
+        Return guards ensuring the configured folder exists.
+
+        Returns:
+            List containing a `MissingFileGuard` for the configured path.
+        """
         return [MissingFileGuard(self.config.path)]
 
     def execute(
@@ -42,6 +69,28 @@ class ReadFolderCsvStep(Step):
         data: FrameContext | None = None,
         context: StepExecutionContext = None,
     ) -> FrameContext:
+        """
+        Read and concatenate all matching CSV files in the configured folder.
+
+        Args:
+            data:
+                Optional existing frame context. When provided, it is
+                returned as-is and the newly read frame is only exposed via
+                `context.extra_inputs`.
+
+            context:
+                Optional execution context. When `context_store` is enabled,
+                the newly read frame context is stored in
+                `context.extra_inputs` under `context_key`.
+
+        Returns:
+            A new `FrameContext` wrapping the concatenated CSV data when
+            `data` is `None`, otherwise the original `data` unchanged.
+
+        Raises:
+            FileNotFoundError:
+                If no files match `pattern` inside the configured folder.
+        """
 
         glob_method = (
             self.config.path.rglob

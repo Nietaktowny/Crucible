@@ -1,5 +1,7 @@
 # src/crucible_server/api/routes.py
 
+"""Aggregates all versioned API routers under a single `/api/v1` prefix."""
+
 from fastapi import APIRouter
 
 from crucible_server.api.runs import router as runs_router

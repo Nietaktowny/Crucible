@@ -1,6 +1,7 @@
 site_name: Crucible
 site_description: Local-first workflow engine for data transformation and reporting
 repo_url: https://github.com/Nietaktowny/Crucible
+dev_addr: 127.0.0.1:8001
 theme:
   palette:
     scheme: slate
@@ -9,15 +10,17 @@ theme:
   name: material
   logo: assets/crucible-logo.png
   favicon: assets/favicon.ico
+  features:
+    - navigation.sections
+    - content.code.copy
 
 nav:
   - Home: index.md
-  - Getting Started:
-      - getting-started.md
-  - User Guide:
-      - workflows.md
-  - Code reference:
-    - reference.md
+  - Getting Started: getting-started.md
+  - Writing Workflows: workflows.md
+  - Deployment: deployment.md
+  - Development: development.md
+  - Code reference: reference.md
 
 plugins:
   - search

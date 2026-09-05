@@ -1,6 +1,8 @@
+import yaml
 import pytest
 from fastapi.testclient import TestClient
 
+from crucible.models import Workflow
 from crucible_server.app import create_app
 from crucible_server.dependencies import get_workflow_service
 from crucible_server.errors import (
@@ -16,6 +18,9 @@ class FakeWorkflowService:
         self.workflows: dict[str, str] = {
             "example": "name: example\nsteps: []\n",
         }
+
+    def _parse(self, content: str) -> Workflow:
+        return Workflow.model_validate(yaml.safe_load(content))
 
     def list_workflows(self) -> list[WorkflowSummary]:
         return [
@@ -38,7 +43,7 @@ class FakeWorkflowService:
         return WorkflowResponse(
             name=name,
             path=f"/fake/workflows/{name}.yaml",
-            content=self.workflows[name],
+            content=self._parse(self.workflows[name]),
         )
 
     def create_workflow(self, name: str, content: str) -> WorkflowResponse:
@@ -55,7 +60,7 @@ class FakeWorkflowService:
         return WorkflowResponse(
             name=name,
             path=f"/fake/workflows/{name}.yaml",
-            content=content,
+            content=self._parse(content),
         )
 
     def update_workflow(self, name: str, content: str) -> WorkflowResponse:
@@ -67,7 +72,7 @@ class FakeWorkflowService:
         return WorkflowResponse(
             name=name,
             path=f"/fake/workflows/{name}.yaml",
-            content=content,
+            content=self._parse(content),
         )
 
     def delete_workflow(self, name: str) -> None:
@@ -108,7 +113,7 @@ def test_get_workflow(client: TestClient) -> None:
     assert response.json() == {
         "name": "example",
         "path": "/fake/workflows/example.yaml",
-        "content": "name: example\nsteps: []\n",
+        "content": {"name": "example", "steps": []},
     }
 
 
@@ -133,7 +138,7 @@ def test_create_workflow(client: TestClient) -> None:
     assert response.json() == {
         "name": "new_workflow",
         "path": "/fake/workflows/new_workflow.yaml",
-        "content": "name: new_workflow\nsteps: []\n",
+        "content": {"name": "new_workflow", "steps": []},
     }
 
 
@@ -172,11 +177,18 @@ def test_update_workflow(client: TestClient) -> None:
     )
 
     assert response.status_code == 200
-    assert response.json() == {
-        "name": "example",
-        "path": "/fake/workflows/example.yaml",
-        "content": "name: example\nsteps:\n  - key: select_columns\n",
-    }
+    body = response.json()
+    assert body["name"] == "example"
+    assert body["path"] == "/fake/workflows/example.yaml"
+    assert body["content"]["name"] == "example"
+    assert len(body["content"]["steps"]) == 1
+
+    step = body["content"]["steps"][0]
+    assert step["key"] == "select_columns"
+    assert step["name"] is None
+    assert step["description"] is None
+    assert step["parameters"] == {}
+    assert isinstance(step["step_id"], str) and step["step_id"]
 
 
 def test_update_workflow_returns_404_when_missing(client: TestClient) -> None:

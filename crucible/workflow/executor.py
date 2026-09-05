@@ -66,7 +66,7 @@ class WorkflowExecutor:
         result.statistics.total_steps = len(workflow_execution_plan.steps_execution_plan)
         result.statistics.system_steps = len([step_plan.step.key for step_plan in workflow_execution_plan.steps_execution_plan if step_plan.step.key.startswith("__")])
         if data is not None:
-            result.preview = data.preview
+            result.preview = data.preview.to_dicts() if data.preview is not None else None
             result.row_count = data.row_count
         return result
         

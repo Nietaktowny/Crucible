@@ -9,6 +9,13 @@ from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInst
 from crucible.schema import build_schema
 
 class DateRangeFilterConfig(BaseModel):
+    """Configuration for filtering rows to a date/datetime range.
+
+    `start` and `end` are ISO-formatted string literals whose parsing is
+    controlled by `value_type` (`date` uses `date.fromisoformat`, `datetime`
+    uses `datetime.fromisoformat`).
+    """
+
     column: ColumnName = Field(
         default=None,
         description="Column with date value used as ending point",
@@ -54,12 +61,27 @@ class DateRangeFilterConfig(BaseModel):
 
 
 class DateRangeFilterStep(Step):
+    """Keep only rows whose date/datetime column falls within `[start, end]`.
+
+    `start` and `end` are parsed as either `date` or `datetime` literals
+    (per `value_type`) and compared using `Expr.is_between`, with boundary
+    inclusion controlled by `closed` (`both`, `left`, `right`, or `none`).
+    """
+
     key = "date_range_filter"
     name = "Date Range Filter"
     description = "Filter rows where a date or datetime column is within a range."
     config_model = DateRangeFilterConfig
 
     def guards(self) -> list[StepGuardProtocol]:
+        """Guard against a non-lazy frame, a missing input column, or a wrong column type.
+
+        Returns:
+            List containing a [`LazyFrameInstanceGuard`][crucible.errors.LazyFrameInstanceGuard],
+            a [`MissingColumnsGuard`][crucible.errors.MissingColumnsGuard] for the configured
+            column, and a [`ColumnsTypeGuard`][crucible.errors.ColumnsTypeGuard] requiring it to
+            be `Date` or `Datetime`.
+        """
         return [
             LazyFrameInstanceGuard(),
             MissingColumnsGuard([self.config.column]),
@@ -71,6 +93,19 @@ class DateRangeFilterStep(Step):
         data: FrameContext,
         context: StepExecutionContext = None,
     ) -> FrameContext:
+        """Parse the range bounds and filter rows to that range.
+
+        Args:
+            data:
+                Current frame context whose `df` must contain the configured
+                `column` as a `Date` or `Datetime` column.
+
+            context:
+                Unused execution context.
+
+        Returns:
+            Updated frame context with the filtered lazy frame.
+        """
         start_value = self._parse_literal(self.config.start)
         end_value = self._parse_literal(self.config.end)
 

@@ -15,8 +15,21 @@ from crucible.models import (
 
 
 class RuntimeDataStorage:
+    """SQLite-backed store of workflow run history.
+
+    Persists `crucible.models.WorkflowRunResult` instances to a local
+    SQLite database (`<runtime_data_dir>/crucible.sqlite`), translating
+    between the Pydantic model used by the engine/API and the flattened
+    ORM row defined in `crucible_workspace.runtime.models`. Note that a run's
+    preview rows are never stored here (see `is_preview`); only `PreviewCache`
+    persists preview data.
+    """
+
     def __init__(self) -> None:
-        self._db_path = get_runtime_data_dir() / "crucible.sqlite"
+        runtime_data_dir = get_runtime_data_dir()
+        runtime_data_dir.mkdir(parents=True, exist_ok=True)
+
+        self._db_path = runtime_data_dir / "crucible.sqlite"
         self._engine = create_engine(
             f"sqlite:///{self._db_path}",
             echo=False,
@@ -27,6 +40,11 @@ class RuntimeDataStorage:
 
     @event.listens_for(Engine, "connect")
     def configure_sqlite(dbapi_connection, connection_record) -> None:
+        """Apply per-connection SQLite pragmas (foreign keys, WAL, busy timeout).
+
+        Registered as a SQLAlchemy connect event so every new DB-API
+        connection gets these settings, not just the first one.
+        """
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.execute("PRAGMA journal_mode=WAL")
@@ -34,6 +52,14 @@ class RuntimeDataStorage:
         cursor.close()
 
     def _pydantic_to_orm(self, model: ModelResult) -> OrmResult:
+        """Flatten a `WorkflowRunResult` into its ORM row representation.
+
+        Args:
+            model (ModelResult): Run result to convert.
+
+        Returns:
+            OrmResult: Equivalent ORM row, not yet attached to a session.
+        """
         error = model.error
 
         return OrmResult(
@@ -57,6 +83,19 @@ class RuntimeDataStorage:
         )
 
     def _orm_to_pydantic(self, orm: OrmResult) -> ModelResult:
+        """Rebuild a `WorkflowRunResult` from its stored ORM row.
+
+        The preview is always `None` on the returned model, since it is
+        never persisted to this database. When `orm.is_error` is set, a
+        synthetic `RuntimeError` is reconstructed from the stored message
+        text (the original exception instance/traceback is not preserved).
+
+        Args:
+            orm (OrmResult): Stored ORM row to convert.
+
+        Returns:
+            ModelResult: Equivalent `WorkflowRunResult`, with `preview=None`.
+        """
         statistics = ModelStatistics(
             total_steps=orm.total_steps,
             system_steps=orm.system_steps,
@@ -85,6 +124,14 @@ class RuntimeDataStorage:
         )
 
     def add_result(self, result: ModelResult) -> str:
+        """Insert a new run result.
+
+        Args:
+            result (ModelResult): Run result to store.
+
+        Returns:
+            str: The stored run's `run_id`.
+        """
         with Session(self._engine) as session:
             orm = self._pydantic_to_orm(result)
             session.add(orm)
@@ -92,6 +139,14 @@ class RuntimeDataStorage:
             return orm.run_id
 
     def get_result(self, run_id: str) -> ModelResult | None:
+        """Fetch one run result by id.
+
+        Args:
+            run_id (str): Run identifier to look up.
+
+        Returns:
+            ModelResult | None: The run result, or `None` if not found.
+        """
         with Session(self._engine) as session:
             orm = session.get(OrmResult, run_id)
 
@@ -101,6 +156,11 @@ class RuntimeDataStorage:
             return self._orm_to_pydantic(orm)
 
     def get_all_results(self) -> list[ModelResult]:
+        """Fetch every stored run result, most recently started first.
+
+        Returns:
+            list[ModelResult]: All stored run results.
+        """
         with Session(self._engine) as session:
             statement = select(OrmResult).order_by(OrmResult.started_at.desc())
             rows = session.scalars(statement).all()
@@ -108,6 +168,14 @@ class RuntimeDataStorage:
             return [self._orm_to_pydantic(row) for row in rows]
 
     def update_result(self, result: ModelResult) -> bool:
+        """Update an existing run result in place.
+
+        Args:
+            result (ModelResult): Run result with updated fields; matched by `run_id`.
+
+        Returns:
+            bool: `True` if a matching row was found and updated, `False` otherwise.
+        """
         with Session(self._engine) as session:
             existing = session.get(OrmResult, result.run_id)
 
@@ -136,6 +204,14 @@ class RuntimeDataStorage:
             return True
 
     def upsert_result(self, result: ModelResult) -> str:
+        """Insert a run result, or update it in place if it already exists.
+
+        Args:
+            result (ModelResult): Run result to store or update.
+
+        Returns:
+            str: The run's `run_id`.
+        """
         with Session(self._engine) as session:
             existing = session.get(OrmResult, result.run_id)
 
@@ -146,7 +222,7 @@ class RuntimeDataStorage:
                 return orm.run_id
 
             updated = self._pydantic_to_orm(result)
-            
+
             existing.status = updated.status
             existing.is_preview = updated.is_preview
             existing.row_count = updated.row_count
@@ -167,6 +243,14 @@ class RuntimeDataStorage:
             return result.run_id
 
     def delete_result(self, run_id: str) -> bool:
+        """Delete one run result by id.
+
+        Args:
+            run_id (str): Run identifier to delete.
+
+        Returns:
+            bool: `True` if a row was deleted, `False` if none existed.
+        """
         with Session(self._engine) as session:
             orm = session.get(OrmResult, run_id)
 
@@ -178,6 +262,11 @@ class RuntimeDataStorage:
             return True
 
     def delete_all_results(self) -> int:
+        """Delete every stored run result.
+
+        Returns:
+            int: Number of rows deleted.
+        """
         with Session(self._engine) as session:
             rows = session.scalars(select(OrmResult)).all()
             count = len(rows)

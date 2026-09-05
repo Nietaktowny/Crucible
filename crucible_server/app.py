@@ -6,6 +6,17 @@ from crucible_server.errors import register_exception_handlers
 
 
 def create_app() -> FastAPI:
+    """Build and configure the Crucible FastAPI application.
+
+    Wires up CORS (permissive for any `localhost`/`127.0.0.1` port, since
+    the frontend dev server's port can shift), the domain exception
+    handlers, and the versioned API router. Used as a Uvicorn app factory
+    (`crucible_server.app:create_app`) so a fresh app instance is created
+    per worker.
+
+    Returns:
+        FastAPI: The configured application instance.
+    """
     app = FastAPI(
         title="Crucible Server",
         version="0.1.0",
@@ -13,10 +24,7 @@ def create_app() -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://localhost:5173",
-            "http://127.0.0.1:5173",
-        ],
+        allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

@@ -9,6 +9,18 @@ from crucible.errors import MissingFileGuard
 from crucible.schema import build_schema
 
 class ReadFolderExcelConfig(BaseModel):
+    """
+    Configuration for reading and concatenating multiple Excel workbooks from
+    a folder into a single Polars frame.
+
+    Files are matched against `pattern` (optionally recursively) and
+    concatenated using `how="diagonal_relaxed"`, so files with mismatched or
+    missing columns are still combined rather than raising an error. Files
+    that fail to read (e.g. corrupted workbooks) are silently skipped. When
+    `add_source_file`/`add_source_path` are enabled, extra columns record the
+    originating file name/path for each row.
+    """
+
     path: Path = Field(
         description="Path to the folder with Excel files to read",
         json_schema_extra=build_schema(
@@ -34,12 +46,29 @@ class ReadFolderExcelConfig(BaseModel):
 
 
 class ReadFolderExcelStep(Step):
+    """
+    Step that reads and concatenates every matching Excel workbook in a
+    folder.
+
+    Globs the configured folder for files matching `pattern` (recursively
+    when `recursive` is set), reads each one with `ExcelIOManager`, skips any
+    file that raises while reading, optionally tags rows with their source
+    file name and/or path, and concatenates the results diagonally into a
+    single frame. Raises `FileNotFoundError` if no files match the pattern.
+    """
+
     key = "read_folder_excel"
     name = "Read Excel Folder"
     description = "Read and concatenate Excel files from a folder."
     config_model = ReadFolderExcelConfig
 
     def guards(self) -> list[StepGuardProtocol]:
+        """
+        Return guards ensuring the configured folder exists.
+
+        Returns:
+            List containing a `MissingFileGuard` for the configured path.
+        """
         return [MissingFileGuard(self.config.path)]
 
     def execute(
@@ -47,6 +76,29 @@ class ReadFolderExcelStep(Step):
         data: FrameContext | None = None,
         context: StepExecutionContext = None,
     ) -> FrameContext:
+        """
+        Read and concatenate all matching Excel workbooks in the configured
+        folder.
+
+        Args:
+            data:
+                Optional existing frame context. When provided, it is
+                returned as-is and the newly read frame is only exposed via
+                `context.extra_inputs`.
+
+            context:
+                Optional execution context. When `context_store` is enabled,
+                the newly read frame context is stored in
+                `context.extra_inputs` under `context_key`.
+
+        Returns:
+            A new `FrameContext` wrapping the concatenated Excel data when
+            `data` is `None`, otherwise the original `data` unchanged.
+
+        Raises:
+            FileNotFoundError:
+                If no files match `pattern` inside the configured folder.
+        """
         glob_method = self.config.path.rglob if self.config.recursive else self.config.path.glob
         files = sorted(glob_method(self.config.pattern))
 

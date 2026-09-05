@@ -8,6 +8,8 @@ from crucible.errors import MissingColumnsGuard, ColumnsTypeGuard, LazyFrameInst
 from crucible.schema import build_schema
 
 class ExtractDateTimePartConfig(BaseModel):
+    """Configuration for extracting a single numeric component (year, month, hour, etc.) from a date/datetime/time column."""
+
     column: ColumnName = Field(
         description="Column to extract datetime part from",
         json_schema_extra=build_schema(
@@ -47,12 +49,31 @@ class ExtractDateTimePartConfig(BaseModel):
 
 
 class ExtractDateTimePartStep(Step):
+    """Extract one numeric part (year, month, day, week, weekday, hour, minute, or second) from a date/datetime/time column.
+
+    The part is read via the matching `Expr.dt.*` accessor (e.g. `dt.year()`,
+    `dt.weekday()`); which parts are actually available depends on the source
+    column's type (e.g. `hour`/`minute`/`second` are meaningless on a plain
+    `Date`), but this step does not restrict `part` based on the column's
+    concrete dtype beyond requiring `Date`, `Datetime`, or `Time`. When
+    `output_column` is not set, the result is written to
+    `"<column>_<part>"`.
+    """
+
     key = "extract_datetime_part"
     name = "Extract Date/Time Part"
     description = "Extract a selected part from a date, datetime, or time column."
     config_model = ExtractDateTimePartConfig
 
     def guards(self) -> list[StepGuardProtocol]:
+        """Guard against a non-lazy frame, a missing input column, or a wrong column type.
+
+        Returns:
+            List containing a [`LazyFrameInstanceGuard`][crucible.errors.LazyFrameInstanceGuard],
+            a [`MissingColumnsGuard`][crucible.errors.MissingColumnsGuard] for the configured
+            column, and a [`ColumnsTypeGuard`][crucible.errors.ColumnsTypeGuard] requiring it to
+            be `Date`, `Datetime`, or `Time`.
+        """
         return [
             LazyFrameInstanceGuard(),
             MissingColumnsGuard([self.config.column]),
@@ -64,6 +85,19 @@ class ExtractDateTimePartStep(Step):
         data: FrameContext,
         context: StepExecutionContext = None,
     ) -> FrameContext:
+        """Extract the configured part and write it to the output column.
+
+        Args:
+            data:
+                Current frame context whose `df` must contain the configured
+                `column` as a `Date`, `Datetime`, or `Time` column.
+
+            context:
+                Unused execution context.
+
+        Returns:
+            Updated frame context with the resulting lazy frame.
+        """
         output_column = self.config.output_column or f"{self.config.column}_{self.config.part}"
 
         expression = self._build_expression().alias(output_column)
