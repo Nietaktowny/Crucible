@@ -1,3 +1,5 @@
+import type { WorkflowRunErrorBody } from "@/types/workflows";
+
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     const cause = error.cause as { message?: string } | undefined;
@@ -5,6 +7,38 @@ export function getErrorMessage(error: unknown): string {
   }
 
   return "Something went wrong.";
+}
+
+/**
+ * Reduces a full Python traceback down to its final "ExceptionType: reason"
+ * line, for use as a short headline alongside the full trace.
+ */
+export function getTracebackHeadline(traceback: string): string {
+  const lines = traceback.trim().split("\n");
+  return lines[lines.length - 1]?.trim() ?? traceback;
+}
+
+/**
+ * Pulls the structured `{error, message, step_name, traceback, ...}` body
+ * the server sends for a failed run out of an error thrown by
+ * `CrucibleClient` (attached as `error.cause`), if present.
+ */
+export function getRunErrorBody(error: unknown): { message: string; step_name?: string; traceback?: string } | null {
+  if (!(error instanceof Error) || typeof error.cause !== "object" || error.cause === null) {
+    return null;
+  }
+
+  const cause = error.cause as Record<string, unknown>;
+
+  if (typeof cause.message !== "string") {
+    return null;
+  }
+
+  return {
+    message: cause.message,
+    step_name: typeof cause.step_name === "string" ? cause.step_name : undefined,
+    traceback: typeof cause.traceback === "string" ? cause.traceback : undefined,
+  };
 }
 
 export function formatDuration(totalSeconds: number | null | undefined): string {

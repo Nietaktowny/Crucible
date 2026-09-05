@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from crucible_server.app import create_app
 from crucible_server.dependencies import get_run_service, get_workflow_service
+from crucible.models import WorkflowErrorContext
 from crucible_server.errors import WorkflowNotFoundError, WorkflowRunError
 from crucible_server.schemas import WorkflowRunResponse
 
@@ -41,8 +42,12 @@ class FakeRunService:
         if workflow_name == "broken":
             raise WorkflowRunError(
                 workflow_name=workflow_name,
-                step_name="broken_step",
-                reason="boom",
+                error_context=WorkflowErrorContext(
+                    error=ValueError("boom"),
+                    step_id="step-1",
+                    step_name="broken_step",
+                    frame_schema=None,
+                ),
             )
 
         workflow_service.get_workflow_path(workflow_name)
@@ -209,7 +214,32 @@ def test_run_workflow_returns_500_when_core_fails(client: TestClient) -> None:
         json={},
     )
 
+    body = response.json()
+
     assert response.status_code == 500
-    assert response.json()["error"] == "workflow_run_failed"
-    assert response.json()["workflow_name"] == "broken"
-    assert response.json()["reason"] == "boom"
+    assert body["error"] == "workflow_run_failed"
+    assert body["workflow_name"] == "broken"
+    assert body["step_name"] == "broken_step"
+    assert body["step_id"] == "step-1"
+    assert "boom" in body["traceback"]
+
+
+def test_run_workflow_returns_500_with_cors_header_on_unhandled_error(
+    client: TestClient,
+    fake_run_service: FakeRunService,
+) -> None:
+    def raise_unexpected(*args, **kwargs):
+        raise RuntimeError("totally unexpected")
+
+    fake_run_service.run_workflow = raise_unexpected
+
+    response = client.post(
+        "/api/v1/runs/workflows/example",
+        json={},
+        headers={"Origin": "http://localhost:5173"},
+    )
+
+    assert response.status_code == 500
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert response.json()["error"] == "internal_server_error"
+    assert "totally unexpected" in response.json()["traceback"]

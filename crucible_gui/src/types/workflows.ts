@@ -76,3 +76,19 @@ export interface WorkflowRunResult {
     row_count: number | null;
     error: WorkflowErrorContext | null;
 }
+
+/**
+ * Shape of the JSON body returned by the server for a failed run, whether
+ * a known `workflow_run_failed` (a step raised during execution) or an
+ * `internal_server_error` (anything unexpected). `step_name`/`step_id`/
+ * `frame_schema` are only present for the former.
+ */
+export interface WorkflowRunErrorBody {
+  error: "workflow_run_failed" | "internal_server_error" | string;
+  message: string;
+  workflow_name?: string;
+  step_id?: string;
+  step_name?: string;
+  frame_schema?: Record<string, string> | null;
+  traceback?: string;
+}
