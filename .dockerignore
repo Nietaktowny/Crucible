@@ -1,0 +1,40 @@
+# Version control / IDE
+.git
+.github
+.vscode
+.idea
+
+# Python
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+*.egg-info
+build-python
+dist-python
+
+# Node / frontend build artifacts (built separately, see crucible_gui/Dockerfile)
+crucible_gui/node_modules
+crucible_gui/dist
+node_modules
+package-lock.json
+package.json
+
+# Docs build output
+docs/site
+site
+
+# Old prototype GUI, kept only for history
+gui
+
+# Local data / large scratch files that don't belong in an image
+data
+test_workflows
+*.csv
+*.xlsx
+*.sqlite
+*.db
+.tmp
+dummy.csv
