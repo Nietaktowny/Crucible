@@ -1,4 +1,4 @@
-import type { WorkflowRunErrorBody } from "@/types/workflows";
+//import type { WorkflowRunErrorBody } from "@/types/workflows";
 
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
