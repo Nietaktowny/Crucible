@@ -103,8 +103,14 @@ class ChangeColumnTypeStep(Step):
             New frame context wrapping the frame with columns cast to their
             new types.
         """
-        result = data.df.with_columns([
-            pl.col(col).cast(POLARS_TYPES.get(dtype))
-            for col, dtype in self.config.column_types.items()
-        ])
+        schema = data.df.collect_schema()
+        expressions = []
+        for column, dtype in self.config.column_types.items():
+            expression = pl.col(column)
+            if schema.get(column) == pl.String and dtype in {"date", "datetime", "time"}:
+                expression = expression.str.strptime(POLARS_TYPES[dtype])
+            else:
+                expression = expression.cast(POLARS_TYPES[dtype])
+            expressions.append(expression)
+        result = data.df.with_columns(expressions)
         return FrameContext(df=result)

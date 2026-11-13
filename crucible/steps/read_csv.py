@@ -71,7 +71,7 @@ class ReadCsvStep(Step):
 
     def __init__(self,  config: StepConfig):
         super().__init__(config)
-        self.io_manager = CsvIOManager(self.config.path, self.config.separator)
+        self.io_manager = CsvIOManager(self.config.path, self.config.separator, self.config.infer_types)
 
     def guards(self) -> list[StepGuardProtocol]:
         """

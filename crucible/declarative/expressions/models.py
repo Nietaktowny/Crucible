@@ -58,6 +58,9 @@ class ValueExpression(BaseModel):
         ```
     """
 
+    value_type: Literal["date", "datetime", "time"] | None = None
+    """Optional ISO temporal literal type; untyped literals retain their behavior."""
+
     value: Any
     """Literal value used by the expression."""
 

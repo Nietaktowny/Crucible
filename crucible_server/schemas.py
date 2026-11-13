@@ -89,3 +89,34 @@ class ExcelSheetsRequest(BaseModel):
 
     path: str
     """Path to the Excel file to inspect, on the machine running the server."""
+
+
+class WorkflowPreviewRequest(BaseModel):
+    """Evaluate an unsaved draft through a selected step."""
+
+    workflow: Workflow
+    step_id: str
+    preview_limit: int = Field(default=200, ge=1, le=1000)
+    before: bool = False
+
+
+class WorkflowPreviewResponse(BaseModel):
+    data: list[dict[str, Any]]
+    columns: list[str]
+    frame_schema: dict[str, str]
+    input_schema: dict[str, str]
+    step_id: str
+    truncated: bool
+    row_count: int | None = None
+
+
+class FilterValuesRequest(WorkflowPreviewRequest):
+    column: str
+    search: str = ""
+    limit: int = Field(default=100, ge=1, le=1000)
+
+
+class FilterValuesResponse(BaseModel):
+    values: list[Any]
+    value_type: str
+    truncated: bool

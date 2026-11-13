@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, UTC
+from collections.abc import Callable
 
 from crucible.models import (
     WorkflowExecutionPlan,
@@ -26,7 +27,14 @@ class WorkflowExecutor:
     - Returning WorkflowRunResult
     """
      
-    def run(self, workflow_execution_plan: WorkflowExecutionPlan) -> WorkflowRunResult:
+    def run(
+        self,
+        workflow_execution_plan: WorkflowExecutionPlan,
+        *,
+        context: StepExecutionContext | None = None,
+        preview_mode: bool = False,
+        on_frame: Callable | None = None,
+    ) -> WorkflowRunResult:
         """Run the workflow based on workflow execution plan.
 
         Args:
@@ -37,25 +45,32 @@ class WorkflowExecutor:
         """
         result = WorkflowRunResult(name=workflow_execution_plan.workflow.name, status=WorkflowStatus.RUNNING)
         data: FrameContext | None = None
-        context = StepExecutionContext()
+        context = context or StepExecutionContext()
         result.statistics.started_at = datetime.now(UTC)
         logger.debug(f"Applied optimizations: {workflow_execution_plan.applied_optimizations}")
         for step_execution_plan in workflow_execution_plan.steps_execution_plan:
-            step = step_execution_plan.step            
+            step = step_execution_plan.step
+            if preview_mode and step.key in {"write_csv", "write_excel", "__inspect_frame"}:
+                continue
+            input_data = data
             try:
                 logger.info(f"Executing step: {step.name}")
                 for guard in step.guards():
                     guard.check(data)
                 data = step.execute(data=data, context=context)
+                if preview_mode:
+                    data.df.collect_schema()
+                if on_frame is not None:
+                    on_frame(step_execution_plan.config, input_data, data)
                 step_execution_plan.status = StepStatus.SUCCESS
             except Exception as e:
                 step_execution_plan.status = StepStatus.FAILED
                 logger.error(f"Step '{step.key}' with name '{step.name}' failed with error: {e}")
                 result.error = WorkflowErrorContext(
                     error=e,
-                    step_id=step.id,
+                    step_id=step_execution_plan.config.step_id,
                     step_name=step.name,
-                    frame_schema=data.schema if data else None
+                    frame_schema=_safe_schema(input_data)
                 )
                 result.status = WorkflowStatus.FAILED
                 break
@@ -71,3 +86,10 @@ class WorkflowExecutor:
         return result
         
         
+
+
+def _safe_schema(data: FrameContext | None) -> dict[str, str] | None:
+    try:
+        return data.schema if data is not None else None
+    except Exception:
+        return None

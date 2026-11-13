@@ -52,6 +52,67 @@ the full model set and supported operators. `create_column` takes a
 similar declarative `expression` instead, documented at
 [`crucible.declarative.expressions`](reference.md#crucible.declarative).
 
+Temporal literal expressions can include `value_type: date`, `datetime`, or
+`time` alongside an ISO-formatted `value`. Without `value_type`, literal
+behavior is unchanged. Simple table filters treat “contains” as literal text;
+the advanced condition editor retains the existing regex semantics.
+
+## Editing with the data table
+
+The workflow editor opens on the data preview and an **Applied steps** list.
+Select a step to inspect its output, including unsaved changes. Column menus,
+cell menus, and the transformation toolbar create ordinary workflow steps
+immediately after the selected step. Later steps remain in the workflow.
+Settings dialogs use **Apply** and **Cancel**; additions, edits, removals, and
+reordering support session undo/redo. **Graph** opens the expanded, read-only
+workflow graph and shares selection with the list.
+
+Automatic previews evaluate the selected prefix, then collect up to 200 rows.
+They do not save the workflow, record a run, or execute CSV/Excel output steps.
+Filter value search queries the entire selected-step result, rather than the
+preview sample. Editing a filter searches its input so excluded values remain
+available. Preview errors identify the affected step, and outdated data is
+labelled until the current preview arrives. **Run workflow** saves a dirty
+draft first and stops if saving fails.
+
+The API exposes `POST /api/v1/workflows/{name}/preview` with a parsed `workflow`,
+`step_id`, optional `before`, and `preview_limit` (default 200, maximum 1000).
+The response includes rows, explicit column order, output/input schemas, and
+truncation status. `POST /api/v1/workflows/{name}/filter-values` accepts the
+same draft/target plus `column`, `search`, and `limit` (default 100, maximum
+1000), and returns typed distinct values. These endpoints do not require the
+draft to have been saved.
+
+## Referencing saved workflows
+
+`read_workflow` reads another workflow's latest saved transformations and
+current inputs. Its output steps are skipped, its execution context is
+isolated, and direct or transitive reference cycles are rejected. The server
+resolves names through its workflow store; CLI runs resolve sibling YAML files.
+Unsaved edits in a different editor are not included.
+
+For example, merge a saved `regions` workflow into the current frame:
+
+```yaml
+- key: read_workflow
+  parameters:
+    workflow_name: regions
+    context_store: true
+    context_key: regions_source
+- key: join
+  parameters:
+    left_on: country
+    right_on: country
+    how: left
+    right_context_key: regions_source
+```
+
+Merge and append dialogs create source-loading and combine steps together as
+one undoable edit. `join.right_context_key` defaults to `right`, preserving
+existing workflows. `concat.context_keys` selects specific stored sources;
+omitting it retains the existing behavior of consuming all extra inputs.
+Explicit source selection leaves unrelated context inputs untouched.
+
 ## How a workflow runs
 
 ```mermaid
@@ -88,6 +149,7 @@ executed row-by-row per step.
 | Key | Name | Description |
 | --- | --- | --- |
 | `read_csv` | Read CSV File | Read data from a CSV file |
+| `read_workflow` | Read Workflow | Read another saved workflow's transformed output. |
 | `read_excel` | Read Excel File | Read data from a Excel workbook. |
 | `read_folder_csv` | Read CSV Folder | Read and concatenate CSV files from a folder. |
 | `read_folder_excel` | Read Excel Folder | Read and concatenate Excel files from a folder. |

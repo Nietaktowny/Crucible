@@ -1,3 +1,4 @@
+import polars as pl
 from pydantic import BaseModel, Field
 
 from crucible.models import Step, StepExecutionContext, FrameContext, StepGuardProtocol, ColumnName
@@ -67,4 +68,6 @@ class DropColumnsStep(Step):
             columns removed.
         """
         result = data.df.drop(self.config.columns)
+        if not result.collect_schema():
+            result = pl.LazyFrame()
         return FrameContext(df=result)

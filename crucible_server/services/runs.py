@@ -45,6 +45,7 @@ class WorkflowRunService:
             print_plan=print_plan,
             preview_limit=preview_limit,
             inspect=inspect,
+            resolve_workflow=workflow_service.store.get_workflow_model,
         )
 
         workflow_service.store_run_result(result)

@@ -1,5 +1,6 @@
 
 from typing import Any
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -8,6 +9,7 @@ import polars as pl
 from crucible.models import (
     WorkflowRunResult,
     WorkflowRunConfig,
+    Workflow,
 )
 from crucible.workflow import (
     WorkflowExecutor,
@@ -40,7 +42,8 @@ class WorkflowRunner:
     def run(self, workflow_path: Path, *,
             print_plan: bool = False,
             inspect: bool = False,
-            preview_limit: int = 500
+            preview_limit: int = 500,
+            resolve_workflow: Callable[[str], Workflow] | None = None,
         ) -> WorkflowRunResult:
         """Run the workflow from file.
 
@@ -56,7 +59,7 @@ class WorkflowRunner:
         workflow_path = Path(workflow_path)
         config = WorkflowRunConfig(
             inspect=inspect,
-            preview_limit=preview_limit
+            preview_limit=preview_limit,
         )
 
         workflow = self.loader.load(workflow_path)
@@ -67,7 +70,15 @@ class WorkflowRunner:
         if print_plan:
             self.compiler.print_execution_plan(workflow)
 
-        return self.executor.run(workflow)
+        from crucible.workflow.evaluation import WorkflowEvaluator
+
+        def resolve_sibling(name: str) -> Workflow:
+            if not name or any(character not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-" for character in name):
+                raise ValueError("Invalid workflow reference name")
+            return self.loader.load(workflow_path.parent / f"{name}.yaml")
+
+        evaluator = WorkflowEvaluator(resolve_workflow or resolve_sibling)
+        return self.executor.run(workflow, context=evaluator.context((workflow.workflow.name,)))
 
 
 def run_workflow(
@@ -75,13 +86,15 @@ def run_workflow(
     *,
     print_plan: bool = False,
     inspect: bool = False,
-    preview_limit: int = 500
+    preview_limit: int = 500,
+    resolve_workflow: Callable[[str], Workflow] | None = None,
 ) -> WorkflowRunResult:
     return WorkflowRunner().run(
         workflow_path=workflow_path,
         inspect=inspect,
         print_plan=print_plan,
-        preview_limit=preview_limit
+        preview_limit=preview_limit,
+        resolve_workflow=resolve_workflow,
     )
     
 def get_steps_schema() -> list[dict[str, Any]]:

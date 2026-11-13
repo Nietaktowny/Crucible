@@ -13,7 +13,7 @@ import { LiteralValueEditor } from "./literal_value_editor";
 
 export type ExpressionValue =
   | { column: string }
-  | { value: unknown }
+  | { value: unknown; value_type?: "date" | "datetime" | "time" | null }
   | { op: string; args: ExpressionValue[] };
 
 type ExpressionEditorProps = {
@@ -153,12 +153,19 @@ export function ExpressionEditor({
         )}
 
         {kind === "literal" && "value" in value && (
-          <LiteralValueEditor
-            value={value.value}
-            onChange={(literal) =>
-              onChange({ value: literal })
-            }
-          />
+          <Stack gap="xs">
+            <Select
+              label="Temporal literal type"
+              value={value.value_type ?? "untyped"}
+              data={["untyped", "date", "datetime", "time"]}
+              allowDeselect={false}
+              onChange={(next) => onChange({ ...value, value_type: next === "untyped" ? null : next as "date" | "datetime" | "time" })}
+            />
+            <LiteralValueEditor
+              value={value.value}
+              onChange={(literal) => onChange({ ...value, value: literal })}
+            />
+          </Stack>
         )}
 
         {kind === "operation" && "op" in value && (

@@ -1,3 +1,4 @@
+import type { DraftPreview, FilterValues } from "@/types/workflows";
 import type { 
   WorkflowBasicDefinition,
   WorkflowFullConfig,
@@ -195,6 +196,34 @@ export class CrucibleClient {
 
     const data = await this.post("runs/workflows/" + workflowName, body);
     return data as WorkflowRunResponse;
+  }
+
+  async previewDraft(
+    name: string, workflow: WorkflowConfig, stepId: string, signal?: AbortSignal, before = false,
+  ): Promise<DraftPreview> {
+    return this.draftRequest(name, "preview", { workflow, step_id: stepId, before }, signal);
+  }
+
+  async filterValues(
+    name: string, workflow: WorkflowConfig, stepId: string, column: string,
+    search: string, before = false, signal?: AbortSignal,
+  ): Promise<FilterValues> {
+    return this.draftRequest(name, "filter-values", {
+      workflow, step_id: stepId, column, search, before,
+    }, signal);
+  }
+
+  private async draftRequest<T>(name: string, operation: string, body: unknown, signal?: AbortSignal): Promise<T> {
+    const response = await fetch(`${this.#baseUrl}/workflows/${encodeURIComponent(name)}/${operation}`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body), signal,
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      const detail = data.detail ?? data;
+      throw new Error(typeof detail.message === "string" ? detail.message : "Invalid preview request", { cause: detail });
+    }
+    return data as T;
   }
 
   async getCachedPreview(workflowName: string): Promise<CachedPreview> {

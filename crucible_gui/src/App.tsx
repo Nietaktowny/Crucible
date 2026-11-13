@@ -1,4 +1,10 @@
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import {
+  createBrowserRouter,
+  createRoutesFromElements,
+  RouterProvider,
+  Route,
+  Outlet,
+} from "react-router-dom";
 import { AppShell, Box, Group } from "@mantine/core";
 
 import { RunsPage } from "@/pages/RunsPage";
@@ -48,19 +54,19 @@ function MainLayout() {
   );
 }
 
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<MainLayout />}>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/runs" element={<RunsPage />} />
+      <Route path="/workflows" element={<WorkflowsPage />} />
+      <Route path="/workflows/:workflowId" element={<WorkflowEditPage />} />
+    </Route>,
+  ),
+);
+
 function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/runs" element={<RunsPage />} />
-          <Route path="/workflows" element={<WorkflowsPage />} />
-          <Route path="/workflows/:workflowId" element={<WorkflowEditPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;

@@ -14,6 +14,7 @@ from crucible.steps.sort_rows import SortRowsStep
 from crucible.steps.reorder_columns import ReorderColumnsStep
 from crucible.steps.pivot import PivotStep
 from crucible.steps.unpivot import UnpivotStep
+from crucible.steps.read_workflow import ReadWorkflowStep
 from crucible.steps.read_csv import ReadCsvStep
 from crucible.steps.write_csv import WriteCsvStep
 from crucible.steps.read_excel import ReadExcelStep
@@ -51,6 +52,7 @@ __all__ = [
     "ReorderColumnsStep",
     "PivotStep",
     "UnpivotStep",
+    "ReadWorkflowStep",
     "ReadCsvStep",
     "WriteCsvStep",
     "ReadExcelStep",

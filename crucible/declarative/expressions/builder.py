@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date, datetime, time
+
 import polars as pl
 
 from crucible.declarative.expressions.models import (
@@ -64,7 +66,11 @@ class ExpressionBuilder:
             return pl.col(expression.column)
 
         if isinstance(expression, ValueExpression):
-            return pl.lit(expression.value)
+            value = expression.value
+            if expression.value_type is not None:
+                parser = {"date": date, "datetime": datetime, "time": time}[expression.value_type]
+                value = parser.fromisoformat(value)
+            return pl.lit(value)
 
         if isinstance(expression, OperationExpression):
             return self._build_operation(expression)

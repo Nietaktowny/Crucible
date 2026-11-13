@@ -45,6 +45,9 @@ class StepExecutionContext(BaseModel):
     frame, for example named source frames used by join or concat steps.
     """
 
+    workflow_resolver: Any = None
+    """Request-local callback resolving a saved workflow to a frame."""
+
     extra_inputs: dict[str, Any] = Field(default_factory=dict)
     """Additional runtime inputs available to a step."""
 

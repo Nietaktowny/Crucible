@@ -4,6 +4,7 @@ export type WorkflowBasicDefinition = {
 };
 
 export interface StepConfig {
+  [key: string]: unknown;
   step_id: string;
   name: string;
   key: string;
@@ -12,6 +13,7 @@ export interface StepConfig {
 }
 
 export interface WorkflowConfig {
+  [key: string]: unknown;
   name: string;
   steps: StepConfig[];  
 }
@@ -91,4 +93,20 @@ export interface WorkflowRunErrorBody {
   step_name?: string;
   frame_schema?: Record<string, string> | null;
   traceback?: string;
+}
+
+export interface DraftPreview {
+  data: Record<string, unknown>[];
+  columns: string[];
+  frame_schema: Record<string, string>;
+  input_schema: Record<string, string>;
+  step_id: string;
+  truncated: boolean;
+  row_count: number | null;
+}
+
+export interface FilterValues {
+  values: unknown[];
+  value_type: string;
+  truncated: boolean;
 }

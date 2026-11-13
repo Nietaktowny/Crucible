@@ -14,6 +14,8 @@ class JoinConfig(BaseModel):
     has no join keys.
     """
 
+    right_context_key: str = "right"
+
     left_on: ColumnName | list[ColumnName] = Field(
         description="Column or list of columns to join on left side",
         json_schema_extra=build_schema(
@@ -110,11 +112,11 @@ class JoinStep(Step):
         if context is None:
             raise ValueError("JoinStep requires execution context")
 
-        right_context = context.extra_inputs.pop("right", None)
+        right_context = context.extra_inputs.pop(self.config.right_context_key, None)
 
         if right_context is None:
             raise ValueError(
-                "JoinStep requires extra input named 'right'. "
+                f"JoinStep requires extra input named {self.config.right_context_key!r}. "
                 f"Available extra inputs: {list(context.extra_inputs.keys())}"
             )
 

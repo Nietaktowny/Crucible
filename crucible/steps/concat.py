@@ -21,6 +21,9 @@ class ConcatConfig(BaseModel):
     schemas, and "horizontal" combines columns side by side.
     """
 
+    context_keys: list[str] | None = None
+    """Explicit sources to consume, or all context inputs for legacy workflows."""
+
     how: Literal["vertical", "diagonal", "horizontal"] = "vertical"
 
 class ConcatStep(Step):
@@ -65,8 +68,13 @@ class ConcatStep(Step):
         Returns:
             A new `FrameContext` wrapping the concatenated result.
         """
-        extra_inputs = list(context.extra_inputs.values())
-        context.extra_inputs.clear()
+        keys = self.config.context_keys
+        if keys is None:
+            keys = list(context.extra_inputs)
+        missing = [key for key in keys if key not in context.extra_inputs]
+        if missing:
+            raise ValueError(f"Append sources not found: {missing}")
+        extra_inputs = [context.extra_inputs.pop(key) for key in dict.fromkeys(keys)]
 
         # Extract LazyFrames from FrameContext objects if needed
         frames = [data.df]

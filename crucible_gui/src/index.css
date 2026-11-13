@@ -259,3 +259,19 @@ body {
 .workflow-row:hover {
   background: rgba(242, 96, 10, 0.08);
 }
+
+/* The editor keeps data central and step configuration in drawers. */
+.workflow-editor-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: var(--mantine-spacing-md); align-items: start; }
+.workflow-table-panel { min-width: 0; overflow: hidden; }
+.workflow-data-scroll { overflow: auto; max-height: 72vh; min-height: 360px; }
+.workflow-data-table { width: max-content; min-width: 100%; }
+.workflow-data-table thead th { position: sticky; top: 0; z-index: 2; min-width: 175px; background: var(--mantine-color-body); }
+.workflow-data-table thead th:first-child { min-width: 45px; }
+.workflow-row-number { color: var(--mantine-color-dimmed); font-size: 11px; }
+.workflow-cell { display: block; width: 100%; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; padding: 3px 0; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workflow-cell:focus-visible { outline: 2px solid var(--mantine-color-ember-5); }
+.workflow-applied-steps { max-height: 78vh; overflow: auto; }
+.workflow-applied-step { padding: 6px; border: 1px solid transparent; border-radius: var(--mantine-radius-sm); }
+.workflow-applied-step.is-selected { background: rgba(242, 96, 10, 0.1); border-color: var(--mantine-color-ember-8); }
+.workflow-step-select { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 1050px) { .workflow-editor-layout { grid-template-columns: minmax(0, 1fr); } .workflow-applied-steps { max-height: 280px; } }

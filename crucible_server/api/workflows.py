@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Response, status, HTTPException
 
 from crucible_server.dependencies import get_workflow_service
 from crucible_server.schemas import (
@@ -8,8 +8,48 @@ from crucible_server.schemas import (
     WorkflowUpdateRequest,
 )
 from crucible_server.services.workflows import WorkflowService
+from crucible_server.services.previews import WorkflowPreviewService
+from crucible_server.schemas import (
+    WorkflowPreviewRequest, WorkflowPreviewResponse, FilterValuesRequest, FilterValuesResponse,
+)
+from crucible.workflow.evaluation import EvaluationError
 
 router = APIRouter(prefix="/workflows", tags=["workflows"])
+
+
+def _preview_call(service, operation, request):
+    try:
+        return getattr(WorkflowPreviewService(service), operation)(request)
+    except EvaluationError as exc:
+        raise HTTPException(status_code=422, detail={
+            "error": "workflow_preview_failed", "message": str(exc),
+            "step_id": exc.step_id, "step_name": exc.step_name,
+            "workflow_name": exc.workflow_name,
+        }) from exc
+    except (ValueError, FileNotFoundError) as exc:
+        raise HTTPException(status_code=422, detail={
+            "error": "invalid_preview", "message": str(exc), "step_id": request.step_id,
+        }) from exc
+
+
+@router.post("/{workflow_name}/preview", response_model=WorkflowPreviewResponse)
+def preview_workflow(
+    workflow_name: str,
+    request: WorkflowPreviewRequest,
+    workflow_service: WorkflowService = Depends(get_workflow_service),
+) -> WorkflowPreviewResponse:
+    """Preview a draft without saving or executing output steps."""
+    return _preview_call(workflow_service, "preview", request)
+
+
+@router.post("/{workflow_name}/filter-values", response_model=FilterValuesResponse)
+def filter_values(
+    workflow_name: str,
+    request: FilterValuesRequest,
+    workflow_service: WorkflowService = Depends(get_workflow_service),
+) -> FilterValuesResponse:
+    """Search distinct values across the entire selected-step output."""
+    return _preview_call(workflow_service, "filter_values", request)
 
 
 @router.get("", response_model=WorkflowListResponse)
