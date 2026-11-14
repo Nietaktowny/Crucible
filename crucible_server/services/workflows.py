@@ -4,12 +4,14 @@ from typing import Any
 from crucible_workspace import WorkflowStore, RuntimeDataStorage, PreviewCache, CachedPreview
 from crucible_workspace.exceptions import (
     InvalidWorkflowNameError as WorkspaceInvalidWorkflowNameError,
+    InvalidWorkflowContentError as WorkspaceInvalidWorkflowContentError,
     WorkflowAlreadyExistsError as WorkspaceWorkflowAlreadyExistsError,
     WorkflowNotFoundError as WorkspaceWorkflowNotFoundError,
 )
 
 from crucible_server.errors import (
     InvalidWorkflowNameError,
+    InvalidWorkflowContentError,
     WorkflowAlreadyExistsError,
     WorkflowNotFoundError,
 )
@@ -87,6 +89,8 @@ class WorkflowService:
         """
         try:
             info = self.store.create_workflow(name=name, content=content)
+        except WorkspaceInvalidWorkflowContentError as exc:
+            raise InvalidWorkflowContentError(str(exc)) from exc
         except WorkspaceWorkflowAlreadyExistsError as exc:
             raise WorkflowAlreadyExistsError(name) from exc
         except WorkspaceInvalidWorkflowNameError as exc:
@@ -114,6 +118,8 @@ class WorkflowService:
         """
         try:
             info = self.store.update_workflow(name=name, content=content)
+        except WorkspaceInvalidWorkflowContentError as exc:
+            raise InvalidWorkflowContentError(str(exc)) from exc
         except WorkspaceWorkflowNotFoundError as exc:
             raise WorkflowNotFoundError(name) from exc
         except WorkspaceInvalidWorkflowNameError as exc:

@@ -18,7 +18,7 @@ import {
   type RawStepSchema,
 } from "@/parsers/step_schema_parser";
 
-import YAML from "yaml";
+import { serializeWorkflow } from "@/lib/workflow_yaml";
 
 export class CrucibleClient {
   #host: string;
@@ -164,7 +164,7 @@ export class CrucibleClient {
   async createWorkflow(workflowName: string, content: WorkflowConfig): Promise<WorkflowFullConfig> {
     const data = {
       "name": workflowName,
-      "content": YAML.stringify(content)
+      "content": serializeWorkflow(content)
     }
     let result = await this.post("workflows", data);
     return result as WorkflowFullConfig;
@@ -172,7 +172,7 @@ export class CrucibleClient {
 
   async updateWorkflow(workflowName: string, content: WorkflowConfig): Promise<WorkflowFullConfig> {
     const data = {
-      "content": YAML.stringify(content)
+      "content": serializeWorkflow(content)
     }
     let result = await this.put("workflows/" + workflowName, data);
     return result as WorkflowFullConfig;

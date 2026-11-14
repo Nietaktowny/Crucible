@@ -14,3 +14,9 @@ class InvalidWorkflowNameError(WorkspaceError):
     """Raised when a workflow name fails `WorkflowStore`'s naming rules."""
 
     pass
+
+
+class InvalidWorkflowContentError(WorkspaceError):
+    """Raised when incoming YAML cannot be parsed as a workflow definition."""
+
+    pass

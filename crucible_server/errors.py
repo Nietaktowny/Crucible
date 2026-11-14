@@ -16,6 +16,12 @@ class InvalidWorkflowNameError(Exception):
     pass
 
 
+class InvalidWorkflowContentError(Exception):
+    """Raised when incoming workflow YAML or its model is invalid."""
+
+    pass
+
+
 class WorkflowNotFoundError(Exception):
     """Raised when a requested workflow does not exist in the store."""
 
@@ -60,6 +66,16 @@ def register_exception_handlers(app: FastAPI) -> None:
     Args:
         app (FastAPI): Application instance to attach the handlers to.
     """
+    @app.exception_handler(InvalidWorkflowContentError)
+    async def invalid_workflow_content_handler(
+        request: Request,
+        exc: InvalidWorkflowContentError,
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content={"error": "invalid_workflow_content", "message": str(exc)},
+        )
+
     @app.exception_handler(InvalidWorkflowNameError)
     async def invalid_workflow_name_handler(
         request: Request,
