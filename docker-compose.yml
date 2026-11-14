@@ -11,6 +11,11 @@
 # Backend:  http://localhost:8000  (interactive API docs at /docs)
 # Frontend: http://localhost:8080
 # Docs:     http://localhost:8001  (only with --profile docs)
+#
+# File access: workflow paths are resolved inside the backend container.
+# The /data volume stores workspace state; /examples exposes bundled samples.
+# For your own CSV/Excel files, add bind mounts and use container paths.
+# See docs/deployment.md#using-local-files-in-the-docker-test-deployment.
 
 services:
   backend:
@@ -22,6 +27,7 @@ services:
       - "8000:8000"
     volumes:
       - crucible-data:/data
+      - ./examples:/examples:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/workflows', timeout=3)"]

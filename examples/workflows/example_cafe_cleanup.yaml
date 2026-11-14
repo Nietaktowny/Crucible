@@ -1,0 +1,284 @@
+# Adapted from the cafe cleanup workflow prepared in Crucible.
+name: example_cafe_cleanup
+steps:
+- key: read_csv
+  name: Read CSV File
+  description: Read data from a CSV file
+  parameters:
+    separator: ','
+    infer_types: true
+    context_store: false
+    path: data/dirty_cafe_sales.csv
+- key: drop_nulls
+  name: Drop Nulls
+  description: Remove rows containing null values.
+  parameters:
+    columns:
+    - Item
+    - Transaction ID
+    - Quantity
+    - Price Per Unit
+    - Total Spent
+    - Payment Method
+    - Location
+    - Transaction Date
+- key: filter_rows
+  name: Filter
+  description: Filter rows based on a declarative condition.
+  parameters:
+    condition:
+      logic: or
+      conditions:
+      - left:
+          column: Quantity
+        operator: '='
+        right:
+          value: '1'
+      - left:
+          column: Quantity
+        operator: '='
+        right:
+          value: '2'
+      - left:
+          column: Quantity
+        operator: '='
+        right:
+          value: '3'
+      - left:
+          column: Quantity
+        operator: '='
+        right:
+          value: '4'
+      - left:
+          column: Quantity
+        operator: '='
+        right:
+          value: '5'
+- key: filter_rows
+  name: Filter
+  description: Filter rows based on a declarative condition.
+  parameters:
+    condition:
+      logic: or
+      conditions:
+      - left:
+          column: Price Per Unit
+        operator: '='
+        right:
+          value: '1.0'
+      - left:
+          column: Price Per Unit
+        operator: '='
+        right:
+          value: '1.5'
+      - left:
+          column: Price Per Unit
+        operator: '='
+        right:
+          value: '2.0'
+      - left:
+          column: Price Per Unit
+        operator: '='
+        right:
+          value: '3.0'
+      - left:
+          column: Price Per Unit
+        operator: '='
+        right:
+          value: '4.0'
+      - left:
+          column: Price Per Unit
+        operator: '='
+        right:
+          value: '5.0'
+- key: filter_rows
+  name: Filter
+  description: Filter rows based on a declarative condition.
+  parameters:
+    condition:
+      logic: or
+      conditions:
+      - left:
+          column: Total Spent
+        operator: '='
+        right:
+          value: '1.0'
+      - left:
+          column: Total Spent
+        operator: '='
+        right:
+          value: '1.5'
+      - left:
+          column: Total Spent
+        operator: '='
+        right:
+          value: '10.0'
+      - left:
+          column: Total Spent
+        operator: '='
+        right:
+          value: '12.0'
+      - left:
+          column: Total Spent
+        operator: '='
+        right:
+          value: '15.0'
+      - left:
+          column: Total Spent
+        operator: '='
+        right:
+          value: '16.0'
+      - left:
+          column: Total Spent
+        operator: '='
+        right:
+          value: '2.0'
+      - left:
+          column: Total Spent
+        operator: '='
+        right:
+          value: '20.0'
+      - left:
+          column: Total Spent
+        operator: '='
+        right:
+          value: '25.0'
+      - left:
+          column: Total Spent
+        operator: '='
+        right:
+          value: '3.0'
+      - left:
+          column: Total Spent
+        operator: '='
+        right:
+          value: '4.0'
+      - left:
+          column: Total Spent
+        operator: '='
+        right:
+          value: '4.5'
+      - left:
+          column: Total Spent
+        operator: '='
+        right:
+          value: '5.0'
+      - left:
+          column: Total Spent
+        operator: '='
+        right:
+          value: '6.0'
+      - left:
+          column: Total Spent
+        operator: '='
+        right:
+          value: '7.5'
+      - left:
+          column: Total Spent
+        operator: '='
+        right:
+          value: '8.0'
+      - left:
+          column: Total Spent
+        operator: '='
+        right:
+          value: '9.0'
+- key: filter_rows
+  name: Filter
+  description: Filter rows based on a declarative condition.
+  parameters:
+    condition:
+      logic: or
+      conditions:
+      - left:
+          column: Location
+        operator: '='
+        right:
+          value: In-store
+      - left:
+          column: Location
+        operator: '='
+        right:
+          value: Takeaway
+- key: filter_rows
+  name: Filter
+  description: Filter rows based on a declarative condition.
+  parameters:
+    condition:
+      left:
+        column: Transaction Date
+      operator: '!='
+      right:
+        value: ERROR
+- key: filter_rows
+  name: Filter
+  description: Filter rows based on a declarative condition.
+  parameters:
+    condition:
+      left:
+        column: Transaction Date
+      operator: '!='
+      right:
+        value: UNKNOWN
+- key: change_column_type
+  name: Change Column Type
+  description: Change the data type of one or more columns.
+  parameters:
+    column_types:
+      Total Spent: float32
+      Price Per Unit: float32
+      Quantity: float32
+      Transaction Date: date
+- key: filter_rows
+  name: Filter
+  description: Filter rows based on a declarative condition.
+  parameters:
+    condition:
+      logic: or
+      conditions:
+      - left:
+          column: Item
+        operator: '='
+        right:
+          value: Cake
+      - left:
+          column: Item
+        operator: '='
+        right:
+          value: Coffee
+      - left:
+          column: Item
+        operator: '='
+        right:
+          value: Cookie
+      - left:
+          column: Item
+        operator: '='
+        right:
+          value: Juice
+      - left:
+          column: Item
+        operator: '='
+        right:
+          value: Salad
+      - left:
+          column: Item
+        operator: '='
+        right:
+          value: Sandwich
+      - left:
+          column: Item
+        operator: '='
+        right:
+          value: Smoothie
+      - left:
+          column: Item
+        operator: '='
+        right:
+          value: Tea
+- key: write_csv
+  description: Write data to a CSV file
+  name: Write CSV File
+  parameters:
+    separator: ','
+    path: output/clean_cafe_sales.csv

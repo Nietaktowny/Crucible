@@ -1,0 +1,41 @@
+name: example_cafe_summary
+steps:
+- key: read_workflow
+  name: Reuse saved cafe cleanup
+  parameters:
+    workflow_name: example_cafe_cleanup
+- key: read_csv
+  name: Load menu categories
+  parameters:
+    path: data/cafe_menu.csv
+    context_store: true
+    context_key: menu
+- key: join
+  name: Add menu category
+  parameters:
+    left_on: Item
+    right_on: Item
+    how: left
+    right_context_key: menu
+- key: group_by
+  name: Summarize sales by category
+  parameters:
+    by:
+    - Category
+    aggregations:
+    - column: Quantity
+      function: sum
+      alias: Units Sold
+    - column: Total Spent
+      function: sum
+      alias: Revenue
+- key: sort_rows
+  name: Sort categories
+  parameters:
+    columns:
+    - name: Category
+      direction: asc
+- key: write_csv
+  name: Export category summary
+  parameters:
+    path: output/cafe_summary.csv

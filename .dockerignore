@@ -38,3 +38,6 @@ test_workflows
 *.db
 .tmp
 dummy.csv
+
+# Small datasets required by the example workflow integration tests
+!examples/data/*.csv

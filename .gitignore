@@ -138,6 +138,10 @@ data/*
 *.xls
 *.parquet
 
+# Small, synthetic datasets shipped with the example workflows
+!examples/data/*.csv
+/example-output/
+
 
 # VS Code settings
 .vscode/

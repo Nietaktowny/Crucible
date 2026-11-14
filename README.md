@@ -39,6 +39,20 @@ docker compose up --build
 - Frontend: [http://localhost:8080](http://localhost:8080)
 - Backend API: [http://localhost:8000/docs](http://localhost:8000/docs)
 
+Try the [bundled playground](examples/README.md): three tiny CSV datasets
+and workflows for café cleanup, sales summaries and stock cleanup. After
+starting Docker, load them with:
+
+```bash
+docker compose exec backend python /examples/load.py
+```
+
+**Docker file access:** workflow paths refer to files inside the backend
+container. The default setup persists Crucible's workspace at `/data` and
+shares the bundled samples at `/examples`. Before testing with your own CSV/Excel
+files, [mount input/output folders and use their container paths](docs/deployment.md#using-local-files-in-the-docker-test-deployment).
+Entering a host path in the GUI does not upload the file.
+
 Or run it directly:
 
 ```bash

@@ -38,5 +38,6 @@ CMD ["uvicorn", "crucible_server.app:create_app", "--factory", "--host", "0.0.0.
 # `docker compose run --rm backend-tests` targets this stage.
 FROM base AS test
 RUN pip install --no-cache-dir ".[dev]"
+COPY examples ./examples
 COPY tests ./tests
 CMD ["pytest"]

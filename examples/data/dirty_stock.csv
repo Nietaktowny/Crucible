@@ -1,0 +1,9 @@
+SKU,Item,Units,Unit Cost,Supplier
+ST001, Coffee beans ,12,8.5,Roastery
+ST002, Tea bags ,20,2.0,
+ST003, Paper cups ,ERROR,0.1,Packaging Co
+ST004, Cake slices ,8,1.5,Bakery
+ST001, Coffee beans ,12,8.5,Roastery
+ST005, Cookies ,15,0.5,Bakery
+ST006, Juice bottles ,,1.0,Drinks Co
+ST007, Salad boxes ,5,UNKNOWN,Kitchen

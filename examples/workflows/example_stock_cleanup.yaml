@@ -1,0 +1,69 @@
+name: example_stock_cleanup
+steps:
+- key: read_csv
+  name: Load dirty stock
+  parameters:
+    path: data/dirty_stock.csv
+- key: create_column
+  name: Trim item names
+  parameters:
+    name: Item
+    expr:
+      op: trim
+      args:
+      - column: Item
+- key: remove_duplicates
+  name: Keep one row per SKU
+  parameters:
+    columns:
+    - SKU
+    keep: first
+- key: replace_values
+  name: Mark invalid unit counts as missing
+  parameters:
+    column: Units
+    old: ERROR
+    new: null
+- key: replace_values
+  name: Mark unknown costs as missing
+  parameters:
+    column: Unit Cost
+    old: UNKNOWN
+    new: null
+- key: drop_nulls
+  name: Drop stock without quantity or cost
+  parameters:
+    columns:
+    - Units
+    - Unit Cost
+- key: fill_nulls
+  name: Label missing suppliers
+  parameters:
+    columns:
+    - Supplier
+    value: Unspecified
+- key: change_column_type
+  name: Convert quantities and costs
+  parameters:
+    column_types:
+      Units: int64
+      Unit Cost: float64
+- key: create_column
+  name: Calculate stock value
+  parameters:
+    name: Stock Value
+    expr:
+      op: multiply
+      args:
+      - column: Units
+      - column: Unit Cost
+- key: sort_rows
+  name: Sort by SKU
+  parameters:
+    columns:
+    - name: SKU
+      direction: asc
+- key: write_csv
+  name: Export cleaned stock
+  parameters:
+    path: output/clean_stock.csv
